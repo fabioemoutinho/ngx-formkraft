@@ -3,17 +3,17 @@
  */
 
 // Types
-export type { FieldDef, FieldDefs } from './lib/types';
+export type { FieldDefs } from './lib/types';
 export type {
   LayoutNode,
   LayoutNodeOptions,
-  FieldNode,
+  ControlNode,
   GroupNode,
   ArrayNode,
 } from './lib/layout-types';
 
 // Builder functions
-export { layout, field, group, array } from './lib/layout';
+export { layout, control, group, array } from './lib/layout';
 export type { GroupOptions, ArrayOptions } from './lib/layout';
 
 // Provider

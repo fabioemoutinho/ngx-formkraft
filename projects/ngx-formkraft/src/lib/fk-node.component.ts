@@ -2,182 +2,140 @@ import {
   Component,
   computed,
   effect,
+  forwardRef,
   inject,
   input,
-  untracked,
-  ViewContainerRef,
   ChangeDetectionStrategy,
   Type,
-  inputBinding,
-  Binding,
+  isSignal,
 } from '@angular/core';
+import { NgComponentOutlet } from '@angular/common';
 import { FieldTree } from '@angular/forms/signals';
-import { LayoutNode, FieldNode, GroupNode, ArrayNode } from './layout-types';
-import { FieldDef, FieldDefs } from './types';
+import { LayoutNode, ControlNode, GroupNode, ArrayNode } from './layout-types';
+import { FieldDefs } from './types';
 import { FORMKRAFT_TYPE_REGISTRY } from './provider';
 
 /**
  * Recursive layout node renderer.
- * Receives a LayoutNode and renders the appropriate component.
+ * Receives a LayoutNode and renders the appropriate component
+ * using NgComponentOutlet with computed input bindings.
+ *
+ * For control nodes, `field` and `state` inputs are passed automatically,
+ * so components implementing FormValueControl<T> get value, errors,
+ * touched, disabled, etc. bound automatically via [formField].
  */
 @Component({
   selector: 'fk-node',
-  standalone: true,
+  imports: [NgComponentOutlet, forwardRef(() => FkNodeComponent)],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: ``,
+  template: `
+    @if (!isHidden()) {
+      @if (resolvedComponent(); as comp) {
+        <ng-container *ngComponentOutlet="comp; inputs: componentInputs()" />
+      } @else {
+        @for (child of fallbackChildren(); track $index) {
+          <fk-node [node]="child" [fieldDefs]="fieldDefs()" />
+        }
+      }
+    }
+  `,
 })
 export class FkNodeComponent {
   readonly node = input.required<LayoutNode>();
   readonly fieldDefs = input<FieldDefs<unknown>>();
 
   private readonly registry = inject(FORMKRAFT_TYPE_REGISTRY, { optional: true }) ?? {};
-  private readonly vcr = inject(ViewContainerRef);
 
-  readonly #render = effect(() => {
+  protected readonly isHidden = computed(() => {
     const node = this.node();
-    const fieldDefs = this.fieldDefs();
 
-    // For groups/arrays, check hidden signal
-    let isHidden = false;
-    if (node.kind === 'group' || node.kind === 'array') {
-      isHidden = node.hidden?.() ?? false;
-    }
-    // For fields, hidden is driven by signal forms (read from FieldState)
-    if (node.kind === 'field') {
-      isHidden = node.field().hidden();
-    }
-
-    untracked(() => {
-      this.vcr.clear();
-      if (isHidden) return;
-
-      switch (node.kind) {
-        case 'field':
-          this.renderField(node);
-          break;
-        case 'group':
-          this.renderGroup(node, fieldDefs);
-          break;
-        case 'array':
-          this.renderArray(node, fieldDefs);
-          break;
-      }
-    });
+    return (
+      (node as ControlNode).field?.().hidden() ??
+      (node as GroupNode | ArrayNode).hidden?.() ??
+      false
+    );
   });
 
-  private renderField(node: FieldNode): void {
-    const componentType = this.resolveFieldComponent(node);
-    if (!componentType) {
-      console.warn(`[ngx-formkraft] No component resolved for field node. Provide a 'component' or 'type' in the field def or layout.`);
-      return;
+  /** Resolved component type, or null if fallback rendering should be used. */
+  protected readonly resolvedComponent = computed((): Type<unknown> | null => {
+    const node = this.node();
+    return this.resolveComponent(node);
+  });
+
+  /** Input bindings for the resolved component. */
+  protected readonly componentInputs = computed((): Record<string, unknown> => {
+    const node = this.node();
+    const fieldDefs = this.fieldDefs();
+    switch (node.kind) {
+      case 'control':
+        return {
+          field: node.field,
+          state: node.field(),
+          ...this.resolveProps(node.props),
+        };
+      case 'group':
+        return {
+          name: node.name,
+          children: node.children,
+          fieldDefs,
+          ...this.resolveProps(node.props),
+        };
+      case 'array':
+        return {
+          field: node.field,
+          ...this.resolveProps(node.props),
+        };
+    }
+  });
+
+  /** Children to render when no wrapper component is resolved (groups/arrays only). */
+  protected readonly fallbackChildren = computed((): LayoutNode[] => {
+    const node = this.node();
+
+    if (node.kind === 'group') return node.children;
+
+    if (node.kind === 'array' && node.itemLayout) {
+      const items = node.field as unknown as ReadonlyArray<FieldTree<unknown>>;
+      const nodes: LayoutNode[] = [];
+      for (let i = 0; i < items.length; i++) {
+        nodes.push(...node.itemLayout(items[i] as FieldTree<never>, i));
+      }
+      return nodes;
     }
 
-    const bindings = this.buildFieldBindings(node);
-    this.vcr.createComponent(componentType, { bindings });
-  }
+    return [];
+  });
 
-  private renderGroup(node: GroupNode, fieldDefs?: FieldDefs<unknown>): void {
-    const componentType = this.resolveNodeComponent(node);
-
-    if (componentType) {
-      // Custom group wrapper — pass children + fieldDefs as inputs
-      const bindings: Binding[] = [
-        inputBinding('name', () => node.name),
-        inputBinding('children', () => node.children),
-        inputBinding('fieldDefs', () => fieldDefs),
-        ...this.buildPropsBindings(node.props),
-      ];
-      this.vcr.createComponent(componentType, { bindings });
-    } else {
-      // No wrapper: render children sequentially
-      for (const child of node.children) {
-        this.vcr.createComponent(FkNodeComponent, {
-          bindings: [
-            inputBinding('node', () => child),
-            inputBinding('fieldDefs', () => fieldDefs),
-          ],
-        });
+  /** Dev-mode warning when a control node has no component resolved. */
+  readonly #warnMissingControl = effect(() => {
+    const node = this.node();
+    if (node.kind === 'control' && !this.resolvedComponent()) {
+      if (typeof ngDevMode === 'undefined' || ngDevMode) {
+        console.warn(
+          `[ngx-formkraft] No component resolved for control node.`,
+          `Provide a 'component' or 'type' in the control() call, or register a type in provideFormKraft().`,
+        );
       }
     }
-  }
-
-  private renderArray(node: ArrayNode, fieldDefs?: FieldDefs<unknown>): void {
-    const componentType = this.resolveNodeComponent(node);
-
-    if (componentType) {
-      // Custom array container handles everything
-      const bindings: Binding[] = [
-        inputBinding('field', () => node.field),
-        ...this.buildPropsBindings(node.props),
-      ];
-      this.vcr.createComponent(componentType, { bindings });
-      return;
-    }
-
-    if (node.itemLayout) {
-      // Library renders each item using the itemLayout function
-      const arrayField = node.field as unknown as ArrayLike<FieldTree<unknown>>;
-      for (let i = 0; i < arrayField.length; i++) {
-        const itemField = arrayField[i];
-        const childNodes = node.itemLayout(itemField as any, i);
-        for (const childNode of childNodes) {
-          this.vcr.createComponent(FkNodeComponent, {
-            bindings: [
-              inputBinding('node', () => childNode),
-              inputBinding('fieldDefs', () => fieldDefs),
-            ],
-          });
-        }
-      }
-    }
-  }
+  });
 
   /**
-   * Resolves the component for a field node.
-   * Priority: node.component > node.def.component > fieldDefs[key].component
-   *           > node.type via registry > node.def.type via registry > fieldDefs[key].type via registry
-   */
-  private resolveFieldComponent(node: FieldNode): Type<unknown> | null {
-    // Direct component refs (highest priority)
-    if (node.component) return node.component;
-    if (node.def?.component) return node.def.component;
-
-    // Type via registry
-    if (node.type && this.registry[node.type]) return this.registry[node.type];
-    if (node.def?.type && this.registry[node.def.type]) return this.registry[node.def.type];
-
-    return null;
-  }
-
-  /**
-   * Resolves the component for a group or array node.
+   * Resolves the component for any layout node.
    * Priority: node.component > node.type via registry
    */
-  private resolveNodeComponent(node: GroupNode | ArrayNode): Type<unknown> | null {
-    if (node.component) return node.component;
-    if (node.type && this.registry[node.type]) return this.registry[node.type];
-    return null;
+  private resolveComponent(node: LayoutNode): Type<unknown> | null {
+    return node.component ?? this.registry[node.type!] ?? null;
   }
 
-  private buildFieldBindings(node: FieldNode): Binding[] {
-    const bindings: Binding[] = [
-      inputBinding('field', () => node.field),
-    ];
-
-    // Merge props: def.props first, then node-level props override
-    const mergedProps = { ...node.def?.props, ...node.props };
-    bindings.push(...this.buildPropsBindings(mergedProps));
-
-    return bindings;
-  }
-
-  private buildPropsBindings(
-    props?: Record<string, unknown | (() => unknown)>,
-  ): Binding[] {
-    if (!props) return [];
-    return Object.entries(props).map(([key, value]) => {
-      const getter = typeof value === 'function' ? (value as () => unknown) : () => value;
-      return inputBinding(key, getter);
-    });
+  /**
+   * Evaluates prop values, subscribing to signals if necessary.
+   */
+  private resolveProps(props?: Record<string, unknown | (() => unknown)>): Record<string, unknown> {
+    if (!props) return {};
+    const resolved: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(props)) {
+      resolved[key] = isSignal(value) ? value() : value;
+    }
+    return resolved;
   }
 }

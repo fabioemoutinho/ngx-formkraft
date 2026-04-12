@@ -13,4 +13,8 @@ export const routes: Routes = [
     path: 'composable',
     loadComponent: () => import('./examples/composable-example.component').then(m => m.ComposableExampleComponent),
   },
+  {
+    path: 'controls',
+    loadComponent: () => import('./examples/controls-example.component').then(m => m.ControlsExampleComponent),
+  },
 ];

@@ -5,22 +5,25 @@ import { MatAnchor } from '@angular/material/button';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbar, MatAnchor],
   template: `
     <mat-toolbar color="primary">
       <span>ngx-formkraft</span>
+      <span class="spacer"></span>
+      <a mat-button href="https://github.com/fabioemoutinho/ngx-formkraft" target="_blank">GitHub</a>
     </mat-toolbar>
     <nav>
       <a mat-button routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Basic</a>
       <a mat-button routerLink="/layout" routerLinkActive="active">Layout + Groups</a>
       <a mat-button routerLink="/composable" routerLinkActive="active">Composable</a>
+      <a mat-button routerLink="/controls" routerLinkActive="active">Control Patterns</a>
     </nav>
     <main>
       <router-outlet />
     </main>
   `,
   styles: `
+    .spacer { flex: 1; }
     nav {
       display: flex;
       gap: 8px;
@@ -32,17 +35,9 @@ import { MatAnchor } from '@angular/material/button';
     }
     main {
       padding: 24px;
-      max-width: 800px;
-    }
-    pre {
-      background: #f5f5f5;
-      padding: 12px;
-      border-radius: 4px;
-      font-size: 13px;
-      overflow-x: auto;
+      max-width: 900px;
     }
   `,
 })
 export class App {
-  title = 'ngx-formkraft demo';
 }

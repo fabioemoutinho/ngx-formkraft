@@ -32,7 +32,6 @@ import { FieldDefs } from './types';
  */
 @Component({
   selector: 'fk-render-children',
-  standalone: true,
   imports: [FkNodeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

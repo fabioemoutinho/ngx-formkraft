@@ -1,6 +1,5 @@
 import { Signal, Type } from '@angular/core';
 import { FieldTree } from '@angular/forms/signals';
-import { FieldDef } from './types';
 
 /**
  * Shared options for component resolution on any layout node.
@@ -10,26 +9,28 @@ export interface LayoutNodeOptions {
   component?: Type<unknown>;
   /** String type key, resolved via the type registry. */
   type?: string;
-  /** Props passed to the resolved component via inputBinding(). */
-  props?: Record<string, unknown | (() => unknown)>;
+  /** Props passed to the resolved component via inputBinding(). Signals are subscribed automatically. */
+  props?: Record<string, unknown>;
 }
 
 /**
- * A leaf node that renders a single form field.
- * Field visibility is driven by signal forms' `hidden()` — not duplicated here.
+ * A control node that renders a form control component.
+ *
+ * The component should implement `FormValueControl<T>` from `@angular/forms/signals`.
+ * The renderer automatically attaches the `[formField]` directive, which binds
+ * value, errors, disabled, touched, required, etc. from the FieldTree.
  */
-export interface FieldNode<TValue = unknown> extends LayoutNodeOptions {
-  readonly kind: 'field';
+export interface ControlNode<TValue = unknown> extends LayoutNodeOptions {
+  readonly kind: 'control';
   /** Reference to the signal form field. */
   readonly field: FieldTree<TValue>;
-  /** Inline rendering overrides (merged with FieldDefs during resolution). */
-  readonly def?: FieldDef<TValue>;
 }
 
 /**
  * A grouping node that renders children inside an optional wrapper component.
  */
 export interface GroupNode extends LayoutNodeOptions {
+  // to-do: should children be a collection or list?
   readonly kind: 'group';
   /** Identifier for the group (used for labeling, CSS hooks, etc.). */
   readonly name: string;
@@ -53,4 +54,4 @@ export interface ArrayNode<TItem = unknown> extends LayoutNodeOptions {
 }
 
 /** Union of all layout node types. */
-export type LayoutNode = FieldNode | GroupNode | ArrayNode;
+export type LayoutNode = ControlNode | GroupNode | ArrayNode;

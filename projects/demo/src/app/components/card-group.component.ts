@@ -4,7 +4,6 @@ import { FkRenderChildrenComponent, LayoutNode, FieldDefs } from 'ngx-formkraft'
 
 @Component({
   selector: 'app-card-group',
-  standalone: true,
   imports: [MatCard, MatCardContent, MatCardHeader, MatCardTitle, FkRenderChildrenComponent],
   template: `
     <mat-card>

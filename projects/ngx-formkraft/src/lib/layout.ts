@@ -1,23 +1,25 @@
 import { Signal, Type } from '@angular/core';
 import { FieldTree } from '@angular/forms/signals';
-import { FieldDef } from './types';
-import { ArrayNode, FieldNode, GroupNode, LayoutNode } from './layout-types';
+import { ArrayNode, ControlNode, GroupNode, LayoutNode, LayoutNodeOptions } from './layout-types';
 
-// ── field() ────────────────────────────────────────────────────────────────
+// ── control() ──────────────────────────────────────────────────────────────
 
 /**
- * Creates a FieldNode in the layout tree.
+ * Creates a ControlNode in the layout tree.
+ *
+ * The rendered component should implement `FormValueControl<T>` from `@angular/forms/signals`.
+ * The renderer automatically attaches `[formField]` to bind value, errors, touched, etc.
  *
  * @example
- * field(f.name)
- * field(f.name, { type: 'text', props: { label: 'Name' } })
- * field(f.name, { component: CustomInput })
+ * control(f.name)
+ * control(f.name, { type: 'text', props: { label: 'Name' } })
+ * control(f.name, { component: CustomInput })
  */
-export function field<T>(
+export function control<T>(
   fieldRef: FieldTree<T>,
-  def?: FieldDef<T>,
-): FieldNode<T> {
-  return { kind: 'field', field: fieldRef, def };
+  options?: LayoutNodeOptions,
+): ControlNode<T> {
+  return { kind: 'control', field: fieldRef, ...options };
 }
 
 // ── group() ────────────────────────────────────────────────────────────────
@@ -37,9 +39,9 @@ export interface GroupOptions {
  * Creates a GroupNode in the layout tree.
  *
  * @example
- * group('personal', [field(f.name), field(f.email)])
- * group('personal', { component: CardComponent, props: { title: 'Info' } }, [field(f.name)])
- * group('personal', { type: 'card' }, [field(f.name)])
+ * group('personal', [control(f.name), control(f.email)])
+ * group('personal', { component: CardComponent, props: { title: 'Info' } }, [control(f.name)])
+ * group('personal', { type: 'card' }, [control(f.name)])
  */
 export function group(name: string, children: LayoutNode[]): GroupNode;
 export function group(name: string, options: GroupOptions, children: LayoutNode[]): GroupNode;
@@ -80,7 +82,7 @@ export interface ArrayOptions {
  * Creates an ArrayNode in the layout tree.
  *
  * @example
- * array(f.addresses, (addr, i) => [field(addr.street), field(addr.city)])
+ * array(f.addresses, (addr, i) => [control(addr.street), control(addr.city)])
  * array(f.addresses, { component: RepeatableCard }, (addr, i) => [...])
  * array(f.addresses, { type: 'repeatable' }, (addr, i) => [...])
  */
@@ -127,12 +129,12 @@ export function array<TItem>(
  * @example
  * const myLayout = layout(userForm, f => [
  *   group('basics', { type: 'card' }, [
- *     field(f.name, { type: 'text', props: { label: 'Name' } }),
- *     field(f.email),
+ *     control(f.name, { type: 'text', props: { label: 'Name' } }),
+ *     control(f.email),
  *   ]),
  *   array(f.addresses, (addr, i) => [
- *     field(addr.street),
- *     field(addr.city),
+ *     control(addr.street),
+ *     control(addr.city),
  *   ]),
  * ]);
  */

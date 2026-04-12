@@ -1,9 +1,24 @@
 {
   "name": "ngx-formkraft",
   "version": "0.0.1",
+  "description": "Angular library for auto-rendering forms using Signal Forms",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fabioemoutinho/ngx-formkraft.git"
+  },
+  "keywords": [
+    "angular",
+    "forms",
+    "signal-forms",
+    "auto-render",
+    "dynamic-forms",
+    "formkraft"
+  ],
   "peerDependencies": {
-    "@angular/common": "^21.2.0",
-    "@angular/core": "^21.2.0"
+    "@angular/common": "^21.0.0",
+    "@angular/core": "^21.0.0",
+    "@angular/forms": "^21.0.0"
   },
   "dependencies": {
     "tslib": "^2.3.0"

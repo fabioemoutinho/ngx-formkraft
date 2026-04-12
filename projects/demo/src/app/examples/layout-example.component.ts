@@ -1,8 +1,7 @@
 import { Component, computed, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { form, required, email, hidden } from '@angular/forms/signals';
-import { FkFormComponent, field, group, layout } from 'ngx-formkraft';
-import type { FieldDefs } from 'ngx-formkraft';
+import { FkFormComponent, control, group, layout } from 'ngx-formkraft';
 import { CardGroupComponent } from '../components/card-group.component';
 
 interface UserProfile {
@@ -14,37 +13,72 @@ interface UserProfile {
 
 @Component({
   selector: 'app-layout-example',
-  standalone: true,
   imports: [FkFormComponent, JsonPipe],
   template: `
     <h3>Layout Example — Custom groups with CardComponent</h3>
-    <p>Fields are organized into card groups. Bio is hidden when role is not "admin" (driven by signal forms <code>hidden()</code>).
-       The entire "Details" group hides too via <code>hidden</code> signal on the group node.</p>
-    <fk-form [form]="userForm" [layout]="userLayout" />
-    <pre>Value: {{ userForm().value() | json }}</pre>
+    <p>Fields are organized into card groups using <code>group()</code> with a custom <code>CardGroupComponent</code>.
+       The "Details" section hides entirely when role is not "admin" — demonstrating both
+       signal forms <code>hidden()</code> (field-level) and group <code>hidden</code> signal (layout-level).</p>
+
+    <section class="demo-section">
+      <fk-form [form]="userForm" [layout]="userLayout" />
+      <pre>Value: {{ userForm().value() | json }}</pre>
+      <p><em>Try selecting "admin" in the Role dropdown to reveal the Details section.</em></p>
+    </section>
+
+    <section class="code-section">
+      <h4>Key concepts</h4>
+      <h5>Layout with groups</h5>
+      <pre>{{ codeLayout }}</pre>
+      <h5>Field visibility via signal forms</h5>
+      <pre>{{ codeHidden }}</pre>
+      <h5>Group visibility via Signal</h5>
+      <pre>{{ codeGroupHidden }}</pre>
+    </section>
+  `,
+  styles: `
+    .demo-section { margin-bottom: 24px; }
+    .code-section h5 { margin: 12px 0 4px; color: #555; }
+    pre { background: #f5f5f5; padding: 12px; border-radius: 4px; font-size: 13px; overflow-x: auto; }
+    em { color: #666; }
   `,
 })
 export class LayoutExampleComponent {
-  private model = signal<UserProfile>({ name: '', email: '', role: 'user', bio: '' });
+  private readonly model = signal<UserProfile>({ name: '', email: '', role: 'user', bio: '' });
 
-  userForm = form(this.model, (f) => {
+  protected readonly userForm = form(this.model, (f) => {
     required(f.name);
     email(f.email);
-    // Cross-field: hide bio when role is not 'admin' using valueOf to read role
     hidden(f.bio, ({ valueOf }) => valueOf(f.role) !== 'admin');
   });
 
-  // Signal for group-level visibility — hides the entire Details card
-  private isNotAdmin = computed(() => this.userForm.role().value() !== 'admin');
+  private readonly isNotAdmin = computed(() => this.userForm.role().value() !== 'admin');
 
-  userLayout = layout(this.userForm, (f) => [
+  protected readonly userLayout = layout(this.userForm, (f) => [
     group('personal', { component: CardGroupComponent, props: { title: 'Personal Info' } }, [
-      field(f.name, { type: 'text', props: { label: 'Full Name' } }),
-      field(f.email, { type: 'text', props: { label: 'Email', inputType: 'email' } }),
-      field(f.role, { type: 'select', props: { label: 'Role', options: ['user', 'editor', 'admin'] } }),
+      control(f.name, { type: 'text', props: { label: 'Full Name' } }),
+      control(f.email, { type: 'text', props: { label: 'Email', inputType: 'email' } }),
+      control(f.role, { type: 'select', props: { label: 'Role', options: ['user', 'editor', 'admin'] } }),
     ]),
     group('details', { component: CardGroupComponent, props: { title: 'Details' }, hidden: this.isNotAdmin }, [
-      field(f.bio, { type: 'textarea', props: { label: 'Biography', placeholder: 'Tell us about yourself...' } }),
+      control(f.bio, { type: 'textarea', props: { label: 'Biography', placeholder: 'Tell us about yourself...' } }),
     ]),
   ]);
+
+  protected readonly codeLayout = `userLayout = layout(this.userForm, (f) => [
+  group('personal', { component: CardGroupComponent, props: { title: 'Personal Info' } }, [
+    control(f.name, { type: 'text', props: { label: 'Full Name' } }),
+    control(f.role, { type: 'select', props: { label: 'Role', options: [...] } }),
+  ]),
+  group('details', { component: CardGroupComponent, hidden: this.isNotAdmin }, [
+    control(f.bio, { type: 'textarea' }),
+  ]),
+]);`;
+
+  protected readonly codeHidden = `// In the schema — cross-field reference using valueOf()
+hidden(f.bio, ({ valueOf }) => valueOf(f.role) !== 'admin');`;
+
+  protected readonly codeGroupHidden = `// Layout-level — hides the entire card wrapper
+private isNotAdmin = computed(() => this.userForm.role().value() !== 'admin');
+group('details', { hidden: this.isNotAdmin }, [...]);`;
 }

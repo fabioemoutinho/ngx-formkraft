@@ -1,12 +1,11 @@
 import { Component, input } from '@angular/core';
-import { FieldTree } from '@angular/forms/signals';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
+import { FieldTree, FieldState, FormField } from '@angular/forms/signals';
+import { MatFormField, MatLabel, MatError } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 
 @Component({
   selector: 'app-textarea-input',
-  standalone: true,
-  imports: [MatFormField, MatLabel, MatInput],
+  imports: [MatFormField, MatLabel, MatInput, MatError, FormField],
   template: `
     <mat-form-field appearance="outline">
       @if (label(); as l) {
@@ -15,22 +14,18 @@ import { MatInput } from '@angular/material/input';
       <textarea matInput
         [rows]="rows()"
         [placeholder]="placeholder()"
-        [value]="field()().value()"
-        (input)="onInput($event)"
-        (blur)="field()().markAsTouched()">
+        [formField]="field()">
       </textarea>
+      <mat-error>{{ state().errors()[0]?.message ?? state().errors()[0]?.kind }}</mat-error>
     </mat-form-field>
   `,
   styles: `:host { display: block; }`,
 })
 export class TextareaInputComponent {
   readonly field = input.required<FieldTree<string>>();
+  readonly state = input.required<FieldState<string>>();
+
   readonly label = input('');
   readonly placeholder = input('');
   readonly rows = input(4);
-
-  onInput(event: Event) {
-    const value = (event.target as HTMLTextAreaElement).value;
-    this.field()().value.set(value);
-  }
 }
