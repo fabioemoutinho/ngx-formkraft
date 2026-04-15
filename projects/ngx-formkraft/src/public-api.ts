@@ -14,7 +14,7 @@ export type {
 
 // Builder functions
 export { layout, control, group, array } from './lib/layout';
-export type { GroupOptions, ArrayOptions } from './lib/layout';
+export type { ContainerOptions } from './lib/layout';
 
 // Provider
 export { provideFormKraft, FORMKRAFT_TYPE_REGISTRY } from './lib/provider';

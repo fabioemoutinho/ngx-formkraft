@@ -44,7 +44,7 @@ export class FkNodeComponent {
   readonly node = input.required<LayoutNode>();
   readonly fieldDefs = input<FieldDefs<unknown>>();
 
-  private readonly registry = inject(FORMKRAFT_TYPE_REGISTRY, { optional: true }) ?? {};
+  private readonly registry = inject(FORMKRAFT_TYPE_REGISTRY);
 
   protected readonly isHidden = computed(() => {
     const node = this.node();

@@ -22,7 +22,7 @@ import { FieldDefs } from './types';
   imports: [FkNodeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @for (node of resolvedLayout(); track trackNode(node, $index)) {
+    @for (node of resolvedLayout(); track $index) {
       <fk-node [node]="node" [fieldDefs]="fieldDefs()" />
     }
   `,
@@ -42,19 +42,6 @@ export class FkFormComponent<T> {
     const layoutFn = this.layout();
     return layoutFn ? layoutFn() : this.autoLayout();
   });
-
-  protected trackNode(node: LayoutNode, index: number): string {
-    switch (node.kind) {
-      case 'control':
-        return `control-${index}`;
-      case 'group':
-        return `group-${node.name}`;
-      case 'array':
-        return `array-${index}`;
-      default:
-        return `node-${index}`;
-    }
-  }
 
   /**
    * Auto-generates a flat layout from the form's field keys + fieldDefs.

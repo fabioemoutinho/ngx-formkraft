@@ -1,4 +1,4 @@
-import { Signal, Type } from '@angular/core';
+import { Signal } from '@angular/core';
 import { FieldTree } from '@angular/forms/signals';
 import { ArrayNode, ControlNode, GroupNode, LayoutNode, LayoutNodeOptions } from './layout-types';
 
@@ -24,14 +24,9 @@ export function control<T>(
 
 // ── group() ────────────────────────────────────────────────────────────────
 
-export interface GroupOptions {
-  /** Direct component type for the group wrapper. */
-  component?: Type<unknown>;
-  /** String type key, resolved via the registry. */
-  type?: string;
-  /** Props passed to the group wrapper component. */
-  props?: Record<string, unknown | (() => unknown)>;
-  /** Signal-based visibility for the group. */
+/** Options for group() and array() builders. Extends LayoutNodeOptions with visibility. */
+export interface ContainerOptions extends LayoutNodeOptions {
+  /** Signal-based visibility. */
   hidden?: Signal<boolean>;
 }
 
@@ -44,10 +39,10 @@ export interface GroupOptions {
  * group('personal', { type: 'card' }, [control(f.name)])
  */
 export function group(name: string, children: LayoutNode[]): GroupNode;
-export function group(name: string, options: GroupOptions, children: LayoutNode[]): GroupNode;
+export function group(name: string, options: ContainerOptions, children: LayoutNode[]): GroupNode;
 export function group(
   name: string,
-  optionsOrChildren: LayoutNode[] | GroupOptions,
+  optionsOrChildren: LayoutNode[] | ContainerOptions,
   maybeChildren?: LayoutNode[],
 ): GroupNode {
   const isOptions = !Array.isArray(optionsOrChildren);
@@ -67,16 +62,6 @@ export function group(
 
 // ── array() ────────────────────────────────────────────────────────────────
 
-export interface ArrayOptions {
-  /** Direct component type for the array container. */
-  component?: Type<unknown>;
-  /** String type key, resolved via the registry. */
-  type?: string;
-  /** Props passed to the array container component. */
-  props?: Record<string, unknown | (() => unknown)>;
-  /** Signal-based visibility for the array. */
-  hidden?: Signal<boolean>;
-}
 
 /**
  * Creates an ArrayNode in the layout tree.
@@ -92,14 +77,14 @@ export function array<TItem>(
 ): ArrayNode<TItem>;
 export function array<TItem>(
   fieldRef: FieldTree<TItem[]>,
-  options: ArrayOptions,
+  options: ContainerOptions,
   itemLayout: (itemField: FieldTree<TItem>, index: number) => LayoutNode[],
 ): ArrayNode<TItem>;
 export function array<TItem>(
   fieldRef: FieldTree<TItem[]>,
   optionsOrLayout:
     | ((itemField: FieldTree<TItem>, index: number) => LayoutNode[])
-    | ArrayOptions,
+    | ContainerOptions,
   maybeLayout?: (itemField: FieldTree<TItem>, index: number) => LayoutNode[],
 ): ArrayNode<TItem> {
   const isOptions = typeof optionsOrLayout !== 'function';

@@ -30,7 +30,6 @@ export interface ControlNode<TValue = unknown> extends LayoutNodeOptions {
  * A grouping node that renders children inside an optional wrapper component.
  */
 export interface GroupNode extends LayoutNodeOptions {
-  // to-do: should children be a collection or list?
   readonly kind: 'group';
   /** Identifier for the group (used for labeling, CSS hooks, etc.). */
   readonly name: string;

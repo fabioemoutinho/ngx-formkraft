@@ -14,6 +14,7 @@ export type FormKraftTypeRegistry = Record<string, Type<unknown>>;
 /** @internal */
 export const FORMKRAFT_TYPE_REGISTRY = new InjectionToken<FormKraftTypeRegistry>(
   'FORMKRAFT_TYPE_REGISTRY',
+  { factory: () => ({}) },
 );
 
 /**
