@@ -1,0 +1,40 @@
+import {
+  Component,
+  ChangeDetectionStrategy,
+  computed,
+  input,
+} from '@angular/core';
+import { FkNodeComponent } from './fk-node.component';
+import { LayoutNode } from './layout-types';
+
+/**
+ * Helper component for custom wrapper components (groups and arrays).
+ * Accepts children as either a Record (from groups) or array (from arrays)
+ * and renders each child using `<fk-node>`.
+ *
+ * @example
+ * // In a custom group component (receives Record):
+ * <fk-children [children]="children()" />
+ *
+ * // In a custom array component (receives array):
+ * <fk-children [children]="children()" />
+ */
+@Component({
+  selector: 'fk-children',
+  imports: [FkNodeComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    @for (child of childList(); track $index) {
+      <fk-node [node]="child" />
+    }
+  `,
+})
+export class FkChildrenComponent {
+  readonly children = input.required<LayoutNode[] | Record<string, LayoutNode>>();
+
+  /** Normalizes children to an array for iteration. */
+  protected readonly childList = computed(() => {
+    const c = this.children();
+    return Array.isArray(c) ? c : Object.values(c);
+  });
+}

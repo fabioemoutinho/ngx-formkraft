@@ -60,63 +60,67 @@ describe('control()', () => {
 });
 
 describe('group()', () => {
-  it('should create a GroupNode with children', () => {
+  it('should create a GroupNode with keyed children', () => {
     const f1 = mockFieldTree('a');
     const f2 = mockFieldTree('b');
-    const node = group('test', [control(f1), control(f2)]);
+    const node = group('test', { a: control(f1), b: control(f2) });
     expect(node.kind).toBe('group');
     expect(node.name).toBe('test');
-    expect(node.children.length).toBe(2);
+    expect(Object.keys(node.children)).toEqual(['a', 'b']);
     expect(node.component).toBeUndefined();
   });
 
-  it('should create a GroupNode with options and children', () => {
+  it('should create a GroupNode with options and keyed children', () => {
     class CardComp {}
-    const node = group('test', { component: CardComp as any, props: { title: 'Hello' } }, []);
+    const node = group('test', { component: CardComp as any, props: { title: 'Hello' } }, {});
     expect(node.kind).toBe('group');
     expect(node.component).toBe(CardComp);
     expect(node.props?.['title']).toBe('Hello');
-    expect(node.children.length).toBe(0);
+    expect(Object.keys(node.children)).toEqual([]);
   });
 
   it('should support type string for registry resolution', () => {
-    const node = group('test', { type: 'card' }, []);
+    const node = group('test', { type: 'card' }, {});
     expect(node.type).toBe('card');
     expect(node.component).toBeUndefined();
   });
 
   it('should support hidden signal', () => {
     const hiddenSig = signal(true);
-    const node = group('test', { hidden: hiddenSig }, []);
+    const node = group('test', { hidden: hiddenSig }, {});
     expect(node.hidden).toBe(hiddenSig);
     expect(node.hidden!()).toBe(true);
   });
 });
 
 describe('array()', () => {
-  it('should create an ArrayNode with itemLayout', () => {
-    const f = mockFieldTree([]);
-    const itemLayoutFn = (item: any, i: number) => [control(item)];
-    const node = array(f, itemLayoutFn);
+  it('should create an ArrayNode with ordered children', () => {
+    const f1 = mockFieldTree('a');
+    const f2 = mockFieldTree('b');
+    const node = array('steps', [control(f1), control(f2)]);
     expect(node.kind).toBe('array');
-    expect(node.field).toBe(f);
-    expect(node.itemLayout).toBe(itemLayoutFn);
+    expect(node.name).toBe('steps');
+    expect(node.children.length).toBe(2);
   });
 
-  it('should create an ArrayNode with options and itemLayout', () => {
-    class RepeatComp {}
-    const f = mockFieldTree([]);
-    const itemLayoutFn = (item: any, i: number) => [control(item)];
-    const node = array(f, { component: RepeatComp as any }, itemLayoutFn);
+  it('should create an ArrayNode with options and children', () => {
+    class StepperComp {}
+    const f = mockFieldTree('a');
+    const node = array('steps', { component: StepperComp as any }, [control(f)]);
     expect(node.kind).toBe('array');
-    expect(node.component).toBe(RepeatComp);
-    expect(node.itemLayout).toBe(itemLayoutFn);
+    expect(node.component).toBe(StepperComp);
+    expect(node.children.length).toBe(1);
   });
 
   it('should support type string', () => {
-    const f = mockFieldTree([]);
-    const node = array(f, { type: 'repeatable' }, () => []);
-    expect(node.type).toBe('repeatable');
+    const node = array('steps', { type: 'stepper' }, []);
+    expect(node.type).toBe('stepper');
+  });
+
+  it('should support hidden signal', () => {
+    const hiddenSig = signal(false);
+    const node = array('steps', { hidden: hiddenSig }, []);
+    expect(node.hidden).toBe(hiddenSig);
   });
 });
 
@@ -135,7 +139,7 @@ describe('layout()', () => {
   it('should return consistent results on multiple calls', () => {
     const f = mockFieldTree({ name: '' });
     const layoutFn = layout(f, () => [
-      group('g', []),
+      group('g', {}),
     ]);
     const r1 = layoutFn();
     const r2 = layoutFn();

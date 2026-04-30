@@ -10,9 +10,7 @@ import {
   isSignal,
 } from '@angular/core';
 import { NgComponentOutlet } from '@angular/common';
-import { FieldTree } from '@angular/forms/signals';
 import { LayoutNode, ControlNode, GroupNode, ArrayNode } from './layout-types';
-import { FieldDefs } from './types';
 import { FORMKRAFT_TYPE_REGISTRY } from './provider';
 
 /**
@@ -34,7 +32,7 @@ import { FORMKRAFT_TYPE_REGISTRY } from './provider';
         <ng-container *ngComponentOutlet="comp; inputs: componentInputs()" />
       } @else {
         @for (child of fallbackChildren(); track $index) {
-          <fk-node [node]="child" [fieldDefs]="fieldDefs()" />
+          <fk-node [node]="child" />
         }
       }
     }
@@ -42,7 +40,6 @@ import { FORMKRAFT_TYPE_REGISTRY } from './provider';
 })
 export class FkNodeComponent {
   readonly node = input.required<LayoutNode>();
-  readonly fieldDefs = input<FieldDefs<unknown>>();
 
   private readonly registry = inject(FORMKRAFT_TYPE_REGISTRY);
 
@@ -59,13 +56,12 @@ export class FkNodeComponent {
   /** Resolved component type, or null if fallback rendering should be used. */
   protected readonly resolvedComponent = computed((): Type<unknown> | null => {
     const node = this.node();
-    return this.resolveComponent(node);
+    return node.component ?? this.registry[node.type!] ?? null;
   });
 
   /** Input bindings for the resolved component. */
   protected readonly componentInputs = computed((): Record<string, unknown> => {
     const node = this.node();
-    const fieldDefs = this.fieldDefs();
     switch (node.kind) {
       case 'control':
         return {
@@ -77,12 +73,12 @@ export class FkNodeComponent {
         return {
           name: node.name,
           children: node.children,
-          fieldDefs,
           ...this.resolveProps(node.props),
         };
       case 'array':
         return {
-          field: node.field,
+          name: node.name,
+          children: node.children,
           ...this.resolveProps(node.props),
         };
     }
@@ -92,16 +88,8 @@ export class FkNodeComponent {
   protected readonly fallbackChildren = computed((): LayoutNode[] => {
     const node = this.node();
 
-    if (node.kind === 'group') return node.children;
-
-    if (node.kind === 'array' && node.itemLayout) {
-      const items = node.field as unknown as ReadonlyArray<FieldTree<unknown>>;
-      const nodes: LayoutNode[] = [];
-      for (let i = 0; i < items.length; i++) {
-        nodes.push(...node.itemLayout(items[i] as FieldTree<never>, i));
-      }
-      return nodes;
-    }
+    if (node.kind === 'group') return Object.values(node.children);
+    if (node.kind === 'array') return node.children;
 
     return [];
   });
@@ -118,14 +106,6 @@ export class FkNodeComponent {
       }
     }
   });
-
-  /**
-   * Resolves the component for any layout node.
-   * Priority: node.component > node.type via registry
-   */
-  private resolveComponent(node: LayoutNode): Type<unknown> | null {
-    return node.component ?? this.registry[node.type!] ?? null;
-  }
 
   /**
    * Evaluates prop values, subscribing to signals if necessary.

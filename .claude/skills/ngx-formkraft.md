@@ -117,14 +117,14 @@ export class RatingComponent implements FormValueControl<number> {
 @Component({
   template: `
     <my-wrapper>
-      <fk-render-children [children]="children()" [fieldDefs]="fieldDefs()" />
+      <fk-children [children]="children()" [fieldDefs]="fieldDefs()" />
     </my-wrapper>
   `,
-  imports: [FkRenderChildrenComponent],
+  imports: [FkChildrenComponent],
 })
 export class MyGroupComponent {
   readonly name = input.required<string>();
-  readonly children = input.required<LayoutNode[]>();
+  readonly children = input.required<Record<string, LayoutNode>>();
   readonly fieldDefs = input<FieldDefs<unknown>>();
   readonly title = input(''); // custom prop
 }

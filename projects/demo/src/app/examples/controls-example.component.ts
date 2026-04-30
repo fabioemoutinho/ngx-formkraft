@@ -61,14 +61,14 @@ export class ControlsExampleComponent {
   });
 
   protected readonly feedbackLayout = layout(this.feedbackForm, (f) => [
-    group('info', { component: CardGroupComponent, props: { title: 'Your Info' } }, [
-      control(f.name, { type: 'text', props: { label: 'Name' } }),
-      control(f.email, { type: 'text', props: { label: 'Email', inputType: 'email' } }),
-    ]),
-    group('feedback', { component: CardGroupComponent, props: { title: 'Feedback' } }, [
-      control(f.rating, { component: RatingInputComponent, props: { label: 'How would you rate us?' } }),
-      control(f.comment, { type: 'textarea', props: { label: 'Comments', placeholder: 'Optional...' } }),
-    ]),
+    group('info', { component: CardGroupComponent, props: { title: 'Your Info' } }, {
+      name: control(f.name, { type: 'text', props: { label: 'Name' } }),
+      email: control(f.email, { type: 'text', props: { label: 'Email', inputType: 'email' } }),
+    }),
+    group('feedback', { component: CardGroupComponent, props: { title: 'Feedback' } }, {
+      rating: control(f.rating, { component: RatingInputComponent, props: { label: 'How would you rate us?' } }),
+      comment: control(f.comment, { type: 'textarea', props: { label: 'Comments', placeholder: 'Optional...' } }),
+    }),
   ]);
 
   protected readonly patternACode = `@Component({

@@ -18,12 +18,12 @@ interface OrderForm {
   billingAddress: Address;
 }
 
-function addressFields(addr: FieldTree<Address>): LayoutNode[] {
-  return [
-    control(addr.street, { type: 'text', props: { label: 'Street' } }),
-    control(addr.city, { type: 'text', props: { label: 'City' } }),
-    control(addr.zip, { type: 'text', props: { label: 'ZIP Code' } }),
-  ];
+function addressFields(addr: FieldTree<Address>): Record<string, LayoutNode> {
+  return {
+    street: control(addr.street, { type: 'text', props: { label: 'Street' } }),
+    city: control(addr.city, { type: 'text', props: { label: 'City' } }),
+    zip: control(addr.zip, { type: 'text', props: { label: 'ZIP Code' } }),
+  };
 }
 
 @Component({
@@ -69,12 +69,12 @@ export class ComposableExampleComponent {
 
   protected readonly orderLayout = layout(this.orderForm, (f) => [
     control(f.customerName, { type: 'text', props: { label: 'Customer Name' } }),
-    group('shipping', { component: CardGroupComponent, props: { title: 'Shipping Address' } }, [
-      ...addressFields(f.shippingAddress),
-    ]),
-    group('billing', { component: CardGroupComponent, props: { title: 'Billing Address' } }, [
-      ...addressFields(f.billingAddress),
-    ]),
+    group('shipping', { component: CardGroupComponent, props: { title: 'Shipping Address' } },
+      addressFields(f.shippingAddress),
+    ),
+    group('billing', { component: CardGroupComponent, props: { title: 'Billing Address' } },
+      addressFields(f.billingAddress),
+    ),
   ]);
 
   protected readonly codeFragment = `function addressFields(addr: FieldTree<Address>): LayoutNode[] {

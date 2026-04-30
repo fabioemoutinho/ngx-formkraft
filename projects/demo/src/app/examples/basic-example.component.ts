@@ -1,8 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { form, required } from '@angular/forms/signals';
-import { FkFormComponent } from 'ngx-formkraft';
-import type { FieldDefs } from 'ngx-formkraft';
+import { FkFormComponent, control, layout } from 'ngx-formkraft';
 
 interface LoginForm {
   username: string;
@@ -13,12 +12,15 @@ interface LoginForm {
   selector: 'app-basic-example',
   imports: [FkFormComponent, JsonPipe],
   template: `
-    <h3>Basic Example — Auto-render from FieldDefs</h3>
-    <p>No explicit layout needed. Fields render in definition order using the type registry configured in <code>provideFormKraft()</code>.</p>
+    <h3>Basic Example</h3>
+    <p>
+      Define the form model, wire up validators, then describe how fields render using
+      <code>layout()</code> and the type registry from <code>provideFormKraft()</code>.
+    </p>
 
     <section class="demo-section">
       <form (ngSubmit)="onSubmit()">
-        <fk-form [form]="loginForm" [fieldDefs]="fieldDefs" />
+        <fk-form [form]="loginForm" [layout]="loginLayout" />
         <button type="submit">Submit</button>
       </form>
       <pre>Value: {{ loginForm().value() | json }}</pre>
@@ -30,17 +32,31 @@ interface LoginForm {
       <pre>{{ codeProvider }}</pre>
       <h5>2. Define the signal form</h5>
       <pre>{{ codeForm }}</pre>
-      <h5>3. Map fields to renderers</h5>
-      <pre>{{ codeDefs }}</pre>
+      <h5>3. Describe the layout</h5>
+      <pre>{{ codeLayout }}</pre>
       <h5>4. Render</h5>
       <pre>{{ codeTemplate }}</pre>
     </section>
   `,
   styles: `
-    .demo-section { margin-bottom: 24px; }
-    .code-section h5 { margin: 12px 0 4px; color: #555; }
-    pre { background: #f5f5f5; padding: 12px; border-radius: 4px; font-size: 13px; overflow-x: auto; }
-    button { margin-top: 8px; padding: 8px 24px; }
+    .demo-section {
+      margin-bottom: 24px;
+    }
+    .code-section h5 {
+      margin: 12px 0 4px;
+      color: #555;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+    button {
+      margin-top: 8px;
+      padding: 8px 24px;
+    }
   `,
 })
 export class BasicExampleComponent {
@@ -51,10 +67,16 @@ export class BasicExampleComponent {
     required(f.password);
   });
 
-  protected readonly fieldDefs: FieldDefs<LoginForm> = {
-    username: { type: 'text', props: { label: 'Username', placeholder: 'Enter username' } },
-    password: { type: 'text', props: { label: 'Password', inputType: 'password', placeholder: 'Enter password' } },
-  };
+  protected readonly loginLayout = layout(this.loginForm, (f) => [
+    control(f.username, {
+      type: 'text',
+      props: { label: 'Username', placeholder: 'Enter username' },
+    }),
+    control(f.password, {
+      type: 'text',
+      props: { label: 'Password', inputType: 'password', placeholder: 'Enter password' },
+    }),
+  ]);
 
   protected onSubmit(): void {
     alert(`Submitted: ${JSON.stringify(this.loginForm().value())}`);
@@ -76,10 +98,10 @@ loginForm = form(this.model, (f) => {
   required(f.password);
 });`;
 
-  protected readonly codeDefs = `fieldDefs: FieldDefs<LoginForm> = {
-  username: { type: 'text', props: { label: 'Username' } },
-  password: { type: 'text', props: { label: 'Password', inputType: 'password' } },
-};`;
+  protected readonly codeLayout = `loginLayout = layout(loginForm, (f) => [
+  control(f.username, { type: 'text', props: { label: 'Username' } }),
+  control(f.password, { type: 'text', props: { label: 'Password', inputType: 'password' } }),
+]);`;
 
-  protected readonly codeTemplate = `<fk-form [form]="loginForm" [fieldDefs]="fieldDefs" />`;
+  protected readonly codeTemplate = `<fk-form [form]="loginForm" [layout]="loginLayout" />`;
 }

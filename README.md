@@ -273,7 +273,7 @@ Top-level renderer. Takes form + optional fieldDefs + optional layout.
 | `fieldDefs` | `FieldDefs<T>`       | Optional. Default rendering metadata per field. |
 | `layout`    | `() => LayoutNode[]` | Optional. Layout function from `layout()`.      |
 
-#### `<fk-render-children>`
+#### `<fk-children>`
 
 Helper for custom group components to render their children.
 
@@ -283,16 +283,16 @@ Helper for custom group components to render their children.
     <mat-card>
       <mat-card-header>{{ title() }}</mat-card-header>
       <mat-card-content>
-        <fk-render-children [children]="children()" [fieldDefs]="fieldDefs()" />
+        <fk-children [children]="children()" [fieldDefs]="fieldDefs()" />
       </mat-card-content>
     </mat-card>
   `,
-  imports: [FkRenderChildrenComponent],
+  imports: [FkChildrenComponent],
 })
 export class CardGroupComponent {
   name = input.required<string>();
   title = input('');
-  children = input.required<LayoutNode[]>();
+  children = input.required<Record<string, LayoutNode>>();
   fieldDefs = input<FieldDefs<unknown>>();
 }
 ```

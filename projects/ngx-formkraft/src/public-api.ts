@@ -3,7 +3,6 @@
  */
 
 // Types
-export type { FieldDefs } from './lib/types';
 export type {
   LayoutNode,
   LayoutNodeOptions,
@@ -23,4 +22,4 @@ export type { FormKraftConfig, FormKraftTypeRegistry } from './lib/provider';
 // Components
 export { FkFormComponent } from './lib/fk-form.component';
 export { FkNodeComponent } from './lib/fk-node.component';
-export { FkRenderChildrenComponent } from './lib/render-children.component';
+export { FkChildrenComponent } from './lib/children.component';

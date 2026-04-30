@@ -9,16 +9,15 @@ export interface LayoutNodeOptions {
   component?: Type<unknown>;
   /** String type key, resolved via the type registry. */
   type?: string;
-  /** Props passed to the resolved component via inputBinding(). Signals are subscribed automatically. */
+  /** Props passed to the resolved component. Signals are subscribed automatically. */
   props?: Record<string, unknown>;
 }
 
 /**
  * A control node that renders a form control component.
  *
- * The component should implement `FormValueControl<T>` from `@angular/forms/signals`.
- * The renderer automatically attaches the `[formField]` directive, which binds
- * value, errors, disabled, touched, required, etc. from the FieldTree.
+ * The component should implement `FormValueControl<T>` from `@angular/forms/signals`,
+ * or receive `field` and `state` inputs and use `[formField]` internally.
  */
 export interface ControlNode<TValue = unknown> extends LayoutNodeOptions {
   readonly kind: 'control';
@@ -27,29 +26,33 @@ export interface ControlNode<TValue = unknown> extends LayoutNodeOptions {
 }
 
 /**
- * A grouping node that renders children inside an optional wrapper component.
+ * A collection node — children are keyed by name.
+ * Wrapper components receive a `Record<string, LayoutNode>` and can place
+ * children by key in specific template locations, or iterate all values.
  */
 export interface GroupNode extends LayoutNodeOptions {
   readonly kind: 'group';
-  /** Identifier for the group (used for labeling, CSS hooks, etc.). */
+  /** Identifier for the group. */
   readonly name: string;
-  /** Signal-based visibility for groups (no corresponding Field with hidden()). */
+  /** Signal-based visibility. */
   readonly hidden?: Signal<boolean>;
-  /** Child layout nodes. */
-  readonly children: LayoutNode[];
+  /** Keyed child layout nodes. */
+  readonly children: Record<string, LayoutNode>;
 }
 
 /**
- * A repeating node for array fields.
+ * An ordered sequence node — children are rendered in order.
+ * Wrapper components receive a `LayoutNode[]` and iterate them sequentially
+ * (e.g., steppers, numbered lists, timelines).
  */
-export interface ArrayNode<TItem = unknown> extends LayoutNodeOptions {
+export interface ArrayNode extends LayoutNodeOptions {
   readonly kind: 'array';
-  /** Reference to the array field. */
-  readonly field: FieldTree<TItem[]>;
-  /** Signal-based visibility for arrays (no corresponding Field with hidden()). */
+  /** Identifier for the array. */
+  readonly name: string;
+  /** Signal-based visibility. */
   readonly hidden?: Signal<boolean>;
-  /** Layout function for each item. Receives the field for a single array element and its index. */
-  readonly itemLayout?: (itemField: FieldTree<TItem>, index: number) => LayoutNode[];
+  /** Ordered child layout nodes. */
+  readonly children: LayoutNode[];
 }
 
 /** Union of all layout node types. */

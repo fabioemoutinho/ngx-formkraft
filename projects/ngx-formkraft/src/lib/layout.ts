@@ -7,9 +7,6 @@ import { ArrayNode, ControlNode, GroupNode, LayoutNode, LayoutNodeOptions } from
 /**
  * Creates a ControlNode in the layout tree.
  *
- * The rendered component should implement `FormValueControl<T>` from `@angular/forms/signals`.
- * The renderer automatically attaches `[formField]` to bind value, errors, touched, etc.
- *
  * @example
  * control(f.name)
  * control(f.name, { type: 'text', props: { label: 'Name' } })
@@ -22,7 +19,7 @@ export function control<T>(
   return { kind: 'control', field: fieldRef, ...options };
 }
 
-// ── group() ────────────────────────────────────────────────────────────────
+// ── Shared options ────────────────────────────────────────────────────────
 
 /** Options for group() and array() builders. Extends LayoutNodeOptions with visibility. */
 export interface ContainerOptions extends LayoutNodeOptions {
@@ -30,75 +27,61 @@ export interface ContainerOptions extends LayoutNodeOptions {
   hidden?: Signal<boolean>;
 }
 
+// ── group() ────────────────────────────────────────────────────────────────
+
 /**
- * Creates a GroupNode in the layout tree.
+ * Creates a GroupNode (keyed collection) in the layout tree.
+ * Wrapper components receive children as a Record and can place them by key.
  *
  * @example
- * group('personal', [control(f.name), control(f.email)])
- * group('personal', { component: CardComponent, props: { title: 'Info' } }, [control(f.name)])
- * group('personal', { type: 'card' }, [control(f.name)])
+ * group('personal', { name: control(f.name), email: control(f.email) })
+ * group('personal', { component: TwoColumn }, { name: control(f.name), email: control(f.email) })
  */
-export function group(name: string, children: LayoutNode[]): GroupNode;
-export function group(name: string, options: ContainerOptions, children: LayoutNode[]): GroupNode;
+export function group(name: string, children: Record<string, LayoutNode>): GroupNode;
+export function group(name: string, options: ContainerOptions, children: Record<string, LayoutNode>): GroupNode;
 export function group(
   name: string,
-  optionsOrChildren: LayoutNode[] | ContainerOptions,
-  maybeChildren?: LayoutNode[],
+  optionsOrChildren: Record<string, LayoutNode> | ContainerOptions,
+  maybeChildren?: Record<string, LayoutNode>,
 ): GroupNode {
-  const isOptions = !Array.isArray(optionsOrChildren);
-  const options = isOptions ? optionsOrChildren : {};
-  const children = isOptions ? maybeChildren! : optionsOrChildren;
+  const hasOptions = maybeChildren !== undefined;
+  const options = hasOptions ? (optionsOrChildren as ContainerOptions) : {};
+  const children = hasOptions ? maybeChildren! : (optionsOrChildren as Record<string, LayoutNode>);
 
   return {
     kind: 'group',
     name,
-    component: options.component,
-    type: options.type,
-    props: options.props,
-    hidden: options.hidden,
+    ...options,
     children,
   };
 }
 
 // ── array() ────────────────────────────────────────────────────────────────
 
-
 /**
- * Creates an ArrayNode in the layout tree.
+ * Creates an ArrayNode (ordered sequence) in the layout tree.
+ * Wrapper components receive children as an array and iterate them in order.
  *
  * @example
- * array(f.addresses, (addr, i) => [control(addr.street), control(addr.city)])
- * array(f.addresses, { component: RepeatableCard }, (addr, i) => [...])
- * array(f.addresses, { type: 'repeatable' }, (addr, i) => [...])
+ * array('steps', [control(f.step1), control(f.step2)])
+ * array('steps', { component: Stepper }, [control(f.step1), control(f.step2)])
  */
-export function array<TItem>(
-  fieldRef: FieldTree<TItem[]>,
-  itemLayout: (itemField: FieldTree<TItem>, index: number) => LayoutNode[],
-): ArrayNode<TItem>;
-export function array<TItem>(
-  fieldRef: FieldTree<TItem[]>,
-  options: ContainerOptions,
-  itemLayout: (itemField: FieldTree<TItem>, index: number) => LayoutNode[],
-): ArrayNode<TItem>;
-export function array<TItem>(
-  fieldRef: FieldTree<TItem[]>,
-  optionsOrLayout:
-    | ((itemField: FieldTree<TItem>, index: number) => LayoutNode[])
-    | ContainerOptions,
-  maybeLayout?: (itemField: FieldTree<TItem>, index: number) => LayoutNode[],
-): ArrayNode<TItem> {
-  const isOptions = typeof optionsOrLayout !== 'function';
-  const options = isOptions ? optionsOrLayout : {};
-  const itemLayout = isOptions ? maybeLayout : optionsOrLayout;
+export function array(name: string, children: LayoutNode[]): ArrayNode;
+export function array(name: string, options: ContainerOptions, children: LayoutNode[]): ArrayNode;
+export function array(
+  name: string,
+  optionsOrChildren: LayoutNode[] | ContainerOptions,
+  maybeChildren?: LayoutNode[],
+): ArrayNode {
+  const isOptions = !Array.isArray(optionsOrChildren);
+  const options = isOptions ? optionsOrChildren : {};
+  const children = isOptions ? maybeChildren! : optionsOrChildren;
 
   return {
     kind: 'array',
-    field: fieldRef,
-    component: options.component,
-    type: options.type,
-    props: options.props,
-    hidden: options.hidden,
-    itemLayout,
+    name,
+    ...options,
+    children,
   };
 }
 
@@ -113,14 +96,10 @@ export function array<TItem>(
  *
  * @example
  * const myLayout = layout(userForm, f => [
- *   group('basics', { type: 'card' }, [
- *     control(f.name, { type: 'text', props: { label: 'Name' } }),
- *     control(f.email),
- *   ]),
- *   array(f.addresses, (addr, i) => [
- *     control(addr.street),
- *     control(addr.city),
- *   ]),
+ *   group('basics', { type: 'card' }, {
+ *     name: control(f.name, { type: 'text', props: { label: 'Name' } }),
+ *     email: control(f.email),
+ *   }),
  * ]);
  */
 export function layout<T>(

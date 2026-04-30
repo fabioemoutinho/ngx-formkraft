@@ -55,14 +55,14 @@ export class LayoutExampleComponent {
   private readonly isNotAdmin = computed(() => this.userForm.role().value() !== 'admin');
 
   protected readonly userLayout = layout(this.userForm, (f) => [
-    group('personal', { component: CardGroupComponent, props: { title: 'Personal Info' } }, [
-      control(f.name, { type: 'text', props: { label: 'Full Name' } }),
-      control(f.email, { type: 'text', props: { label: 'Email', inputType: 'email' } }),
-      control(f.role, { type: 'select', props: { label: 'Role', options: ['user', 'editor', 'admin'] } }),
-    ]),
-    group('details', { component: CardGroupComponent, props: { title: 'Details' }, hidden: this.isNotAdmin }, [
-      control(f.bio, { type: 'textarea', props: { label: 'Biography', placeholder: 'Tell us about yourself...' } }),
-    ]),
+    group('personal', { component: CardGroupComponent, props: { title: 'Personal Info' } }, {
+      name: control(f.name, { type: 'text', props: { label: 'Full Name' } }),
+      email: control(f.email, { type: 'text', props: { label: 'Email', inputType: 'email' } }),
+      role: control(f.role, { type: 'select', props: { label: 'Role', options: ['user', 'editor', 'admin'] } }),
+    }),
+    group('details', { component: CardGroupComponent, props: { title: 'Details' }, hidden: this.isNotAdmin }, {
+      bio: control(f.bio, { type: 'textarea', props: { label: 'Biography', placeholder: 'Tell us about yourself...' } }),
+    }),
   ]);
 
   protected readonly codeLayout = `userLayout = layout(this.userForm, (f) => [
