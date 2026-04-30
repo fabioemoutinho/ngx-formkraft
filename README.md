@@ -2,10 +2,10 @@
 
 Auto-rendering forms for Angular Signal Forms.
 
-**ngx-formkraft** is a UI-agnostic library that automatically renders forms from configuration, powered by Angular Signal Forms (`@angular/forms/signals`). It separates form concerns into three layers:
+**ngx-formkraft** is a UI-agnostic library that renders forms from a layout description, powered by Angular Signal Forms (`@angular/forms/signals`). It separates form concerns into two layers:
 
-1. **Signal Forms** -- data model + validation (your domain, untouched)
-2. **Layout** -- visual structure + rendering instructions (controls, groups, arrays)
+1. **Signal Forms** — data model + validation (your domain, untouched)
+2. **Layout** — visual structure + rendering instructions (controls, groups, arrays)
 
 [Live Demo](https://fabioemoutinho.github.io/ngx-formkraft)
 
@@ -33,7 +33,6 @@ export const appConfig: ApplicationConfig = {
       types: {
         text: TextInputComponent,
         select: SelectComponent,
-        // groups and arrays can also be registered
         card: CardGroupComponent,
       },
     }),
@@ -61,23 +60,25 @@ const userForm = form(model, (f) => {
 });
 ```
 
-### 3. Render it
-
-```html
-<fk-form [form]="userForm" [fieldDefs]="fieldDefs" />
-```
+### 3. Describe the layout
 
 ```typescript
-import type { FieldDefs } from 'ngx-formkraft';
+import { layout, control, group } from 'ngx-formkraft';
 
-const fieldDefs: FieldDefs<UserProfile> = {
-  name: { type: 'text', props: { label: 'Full Name' } },
-  email: { type: 'text', props: { label: 'Email', inputType: 'email' } },
-  role: { type: 'select', props: { label: 'Role', options: ['user', 'editor', 'admin'] } },
-};
+const userLayout = layout(userForm, (f) => [
+  group('personal', { type: 'card', props: { title: 'Personal Info' } }, {
+    name: control(f.name, { type: 'text', props: { label: 'Full Name' } }),
+    email: control(f.email, { type: 'text', props: { label: 'Email', inputType: 'email' } }),
+    role: control(f.role, { type: 'select', props: { label: 'Role', options: ['user', 'editor', 'admin'] } }),
+  }),
+]);
 ```
 
-That's it. `<fk-form>` walks the form controls, resolves components from the registry, and renders them with the right props.
+### 4. Render it
+
+```html
+<fk-form [form]="userForm" [layout]="userLayout" />
+```
 
 ## Core Concepts
 
@@ -96,30 +97,30 @@ form(model, schema)                      layout(form, f => [...])
 
 ### Layout Node Kinds
 
-- **`control`** -- a form control. The component receives the `FieldTree` and uses `[formField]` on its inner form element.
-- **`group`** -- renders children inside an optional wrapper component.
-- **`array`** -- repeatable section for array fields.
+- **`control`** — a form control. The component receives `field` and `state` and uses `[formField]` on its inner form element.
+- **`group`** — a keyed collection of nodes rendered inside an optional wrapper component. Children are a `Record<string, LayoutNode>`.
+- **`array`** — an ordered sequence of nodes rendered inside an optional wrapper component. Children are `LayoutNode[]`.
 
 ### Component Resolution (two-tier)
 
 Every node (control, group, or array) resolves its component with the same priority:
 
-1. **Direct component reference** (inline in layout) -- highest priority
-2. **String `type`** resolved via the registry -- fallback
+1. **Direct component reference** (inline in layout) — highest priority
+2. **String `type`** resolved via the registry — fallback
 
 ```typescript
-// Direct component -- takes precedence
+// Direct component — takes precedence
 control(f.bio, { component: RichTextEditor, props: { label: 'Bio' } });
 
-// String type -- resolved from provideFormKraft({ types: { text: TextInput } })
+// String type — resolved from provideFormKraft({ types: { text: TextInput } })
 control(f.name, { type: 'text', props: { label: 'Name' } });
 ```
 
 This applies to groups and arrays too:
 
 ```typescript
-group('personal', { component: CardComponent }, [...])
-group('personal', { type: 'card' }, [...])  // resolved from registry
+group('personal', { component: CardComponent }, { name: control(f.name) })
+group('personal', { type: 'card' }, { name: control(f.name) })  // resolved from registry
 ```
 
 ### Visibility
@@ -128,13 +129,13 @@ group('personal', { type: 'card' }, [...])  // resolved from registry
 - **Groups/Arrays**: use `hidden?: Signal<boolean>` on the layout node, since they don't have a corresponding signal form field.
 
 ```typescript
-// Control visibility -- in signal forms schema
+// Control visibility — in signal forms schema
 const userForm = form(model, (f) => {
   hidden(f.bio, ({ valueOf }) => valueOf(f.role) !== 'admin');
 });
 
-// Group visibility -- in layout
-group('admin-section', { hidden: computed(() => userForm.role().value() !== 'admin') }, [...])
+// Group visibility — in layout
+group('admin-section', { hidden: computed(() => userForm.role().value() !== 'admin') }, {})
 ```
 
 ## API Reference
@@ -148,19 +149,9 @@ Shared rendering options for any layout node.
 ```typescript
 interface LayoutNodeOptions {
   component?: Type<unknown>; // direct component reference
-  type?: string; // string type key for registry
+  type?: string;             // string type key for registry
   props?: Record<string, unknown>; // inputs passed to component
 }
-```
-
-#### `FieldDefs<T>`
-
-Map of field keys to their rendering options, matching the form model structure. Used only for auto-layout (when no explicit `layout()` is provided).
-
-```typescript
-type FieldDefs<T> = {
-  [K in keyof T]?: LayoutNodeOptions | FieldDefs<T[K]>;
-};
 ```
 
 #### `LayoutNode`
@@ -177,14 +168,14 @@ interface GroupNode extends LayoutNodeOptions {
   kind: 'group';
   name: string;
   hidden?: Signal<boolean>;
-  children: LayoutNode[];
+  children: Record<string, LayoutNode>;
 }
 
-interface ArrayNode<T> extends LayoutNodeOptions {
+interface ArrayNode extends LayoutNodeOptions {
   kind: 'array';
-  field: FieldTree<T[]>;
+  name: string;
   hidden?: Signal<boolean>;
-  itemLayout?: (item: FieldTree<T>, index: number) => LayoutNode[];
+  children: LayoutNode[];
 }
 ```
 
@@ -202,25 +193,22 @@ control(f.name, { component: CustomInput });
 
 #### `group(name, children)` / `group(name, options, children)`
 
-Creates a group node with optional wrapper component.
+Creates a group node (keyed collection) with optional wrapper component.
 
 ```typescript
-group('personal', [control(f.name), control(f.email)]);
-group('personal', { type: 'card', props: { title: 'Personal' } }, [control(f.name)]);
-group('personal', { component: CardComponent }, [control(f.name)]);
+group('personal', { name: control(f.name), email: control(f.email) });
+group('personal', { type: 'card', props: { title: 'Personal' } }, { name: control(f.name) });
+group('personal', { component: CardComponent }, { name: control(f.name) });
 ```
 
-#### `array(fieldRef, itemLayout)` / `array(fieldRef, options, itemLayout)`
+#### `array(name, children)` / `array(name, options, children)`
 
-Creates an array node for repeatable sections.
+Creates an array node (ordered sequence) with optional wrapper component.
 
 ```typescript
-array(f.addresses, (addr, i) => [
-  control(addr.street, { type: 'text', props: { label: 'Street' } }),
-  control(addr.city, { type: 'text', props: { label: 'City' } }),
-])
-
-array(f.addresses, { type: 'repeatable' }, (addr, i) => [...])
+array('steps', [control(f.step1), control(f.step2)]);
+array('steps', { component: StepperComponent }, [control(f.step1), control(f.step2)]);
+array('steps', { type: 'stepper' }, [control(f.step1)]);
 ```
 
 #### `layout(formRef, fn)`
@@ -229,10 +217,10 @@ Creates a reactive layout function. Mirrors `form(model, fn)`.
 
 ```typescript
 const myLayout = layout(userForm, (f) => [
-  group('basics', { type: 'card' }, [
-    control(f.name, { type: 'text', props: { label: 'Name' } }),
-    control(f.email),
-  ]),
+  group('basics', { type: 'card' }, {
+    name: control(f.name, { type: 'text', props: { label: 'Name' } }),
+    email: control(f.email),
+  }),
 ]);
 ```
 
@@ -248,7 +236,7 @@ provideFormKraft({
     text: TextInputComponent,
     select: SelectInputComponent,
     card: CardGroupComponent,
-    repeatable: RepeatableSectionComponent,
+    stepper: StepperComponent,
   },
 });
 ```
@@ -257,25 +245,20 @@ provideFormKraft({
 
 #### `<fk-form>`
 
-Top-level renderer. Takes form + optional fieldDefs + optional layout.
+Top-level renderer. Takes a form and a layout function.
 
 ```html
-<!-- With layout -- full control over structure and rendering -->
 <fk-form [form]="userForm" [layout]="userLayout" />
-
-<!-- Without layout -- auto-renders from fieldDefs -->
-<fk-form [form]="userForm" [fieldDefs]="fieldDefs" />
 ```
 
-| Input       | Type                 | Description                                     |
-| ----------- | -------------------- | ----------------------------------------------- |
-| `form`      | `FieldTree<T>`       | Required. The signal form.                      |
-| `fieldDefs` | `FieldDefs<T>`       | Optional. Default rendering metadata per field. |
-| `layout`    | `() => LayoutNode[]` | Optional. Layout function from `layout()`.      |
+| Input    | Type                 | Description                             |
+| -------- | -------------------- | --------------------------------------- |
+| `form`   | `FieldTree<T>`       | Required. The signal form.              |
+| `layout` | `() => LayoutNode[]` | Required. Layout function from `layout()`. |
 
 #### `<fk-children>`
 
-Helper for custom group components to render their children.
+Helper for custom group and array components to render their children.
 
 ```typescript
 @Component({
@@ -283,7 +266,7 @@ Helper for custom group components to render their children.
     <mat-card>
       <mat-card-header>{{ title() }}</mat-card-header>
       <mat-card-content>
-        <fk-children [children]="children()" [fieldDefs]="fieldDefs()" />
+        <fk-children [children]="children()" />
       </mat-card-content>
     </mat-card>
   `,
@@ -293,7 +276,6 @@ export class CardGroupComponent {
   name = input.required<string>();
   title = input('');
   children = input.required<Record<string, LayoutNode>>();
-  fieldDefs = input<FieldDefs<unknown>>();
 }
 ```
 
@@ -301,7 +283,7 @@ export class CardGroupComponent {
 
 ### Control Components
 
-The library passes `field` (the `FieldTree`) and `state` (the `FieldState`) as inputs. Control components use `[formField]` on their inner form element -- the `FormField` directive from `@angular/forms/signals` handles value sync, touched, dirty, disabled, required, error state automatically.
+The library passes `field` (the `FieldTree`) and `state` (the `FieldState`) as inputs. Control components use `[formField]` on their inner form element — the `FormField` directive from `@angular/forms/signals` handles value sync, touched, dirty, disabled, required, error state automatically.
 
 **Pattern A: Wrapping existing UI components (Material, PrimeNG, etc.)**
 
@@ -329,64 +311,64 @@ export class TextInputComponent {
 ```typescript
 export class ColorPickerComponent implements FormValueControl<string> {
   field = input.required<FieldTree<string>>();
-  value = model(''); // required -- two-way bound by [formField]
+  value = model(''); // required — two-way bound by [formField]
 }
 ```
 
 ### Group Components
 
-Receive `name`, `children`, `fieldDefs`, and custom props:
+Receive `name`, `children` (as `Record<string, LayoutNode>`), and any custom props:
 
 ```typescript
 @Component({ ... })
 export class CardGroupComponent {
   name = input.required<string>();
-  children = input.required<LayoutNode[]>();
-  fieldDefs = input<FieldDefs<unknown>>();
-  title = input('');  // custom prop from props
+  children = input.required<Record<string, LayoutNode>>();
+  title = input(''); // custom prop from props
 }
 ```
+
+Use `<fk-children [children]="children()" />` to render them, or iterate `children()` by key for custom placement.
 
 ### Array Components
 
-Receive the array `field` and custom props:
+Receive `name`, `children` (as `LayoutNode[]`), and any custom props:
 
 ```typescript
 @Component({ ... })
-export class RepeatableComponent {
-  field = input.required<FieldTree<any[]>>();
+export class StepperComponent {
+  name = input.required<string>();
+  children = input.required<LayoutNode[]>();
 }
 ```
 
+Use `<fk-children [children]="children()" />` to render them in order, or iterate manually for full control.
+
 ## Layout Composability
 
-Layouts are plain functions returning `LayoutNode[]` -- composability is free via standard TypeScript patterns.
+Layouts are plain functions returning `LayoutNode[]` — composability is free via standard TypeScript patterns.
 
 ### Reusable Fragments
 
 ```typescript
-function addressFields(addr: FieldTree<Address>): LayoutNode[] {
-  return [
-    control(addr.street, { type: 'text', props: { label: 'Street' } }),
-    control(addr.city, { type: 'text', props: { label: 'City' } }),
-  ];
+function addressFields(addr: FieldTree<Address>): Record<string, LayoutNode> {
+  return {
+    street: control(addr.street, { type: 'text', props: { label: 'Street' } }),
+    city: control(addr.city, { type: 'text', props: { label: 'City' } }),
+  };
 }
 
 const orderLayout = layout(orderForm, (f) => [
-  group('shipping', { type: 'card', props: { title: 'Shipping' } }, [
-    ...addressFields(f.shippingAddress),
-  ]),
-  group('billing', { type: 'card', props: { title: 'Billing' } }, [
-    ...addressFields(f.billingAddress),
-  ]),
+  group('shipping', { type: 'card', props: { title: 'Shipping' } }, addressFields(f.shippingAddress)),
+  group('billing', { type: 'card', props: { title: 'Billing' } }, addressFields(f.billingAddress)),
 ]);
 ```
 
 ### Higher-Order Builders
 
 ```typescript
-function cardSection(name: string, title: string, nodes: LayoutNode[]) {
-  return group(name, { type: 'card', props: { title } }, nodes);
+function cardGroup(name: string, title: string, children: Record<string, LayoutNode>) {
+  return group(name, { type: 'card', props: { title } }, children);
 }
 ```
 
@@ -394,24 +376,14 @@ function cardSection(name: string, title: string, nodes: LayoutNode[]) {
 
 ```typescript
 function baseProfileLayout(f: FieldTree<UserProfile>): LayoutNode[] {
-  return [group('basics', [control(f.name), control(f.email)])];
+  return [group('basics', { name: control(f.name), email: control(f.email) })];
 }
 
 const hrLayout = layout(userForm, (f) => [
   ...baseProfileLayout(f),
-  group('hr', { type: 'card' }, [control(f.department), control(f.startDate)]),
+  group('hr', { type: 'card' }, { department: control(f.department), startDate: control(f.startDate) }),
 ]);
 ```
-
-## Array Handling
-
-Three patterns for arrays:
-
-| Pattern                                     | When to use                                  |
-| ------------------------------------------- | -------------------------------------------- |
-| `array(f.items, (item, i) => [...])`        | Library iterates, you define per-item layout |
-| `array(f.items, { component: CustomList })` | Your component handles everything            |
-| `group('items', { component: Manual }, [])` | You do `@for` yourself, full control         |
 
 ## Development
 

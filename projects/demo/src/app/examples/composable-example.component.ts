@@ -77,35 +77,31 @@ export class ComposableExampleComponent {
     ),
   ]);
 
-  protected readonly codeFragment = `function addressFields(addr: FieldTree<Address>): LayoutNode[] {
-  return [
-    control(addr.street, { type: 'text', props: { label: 'Street' } }),
-    control(addr.city, { type: 'text', props: { label: 'City' } }),
-    control(addr.zip, { type: 'text', props: { label: 'ZIP Code' } }),
-  ];
+  protected readonly codeFragment = `function addressFields(addr: FieldTree<Address>): Record<string, LayoutNode> {
+  return {
+    street: control(addr.street, { type: 'text', props: { label: 'Street' } }),
+    city: control(addr.city, { type: 'text', props: { label: 'City' } }),
+    zip: control(addr.zip, { type: 'text', props: { label: 'ZIP Code' } }),
+  };
 }`;
 
   protected readonly codeCompose = `orderLayout = layout(this.orderForm, (f) => [
   control(f.customerName, { type: 'text', props: { label: 'Customer Name' } }),
-  group('shipping', { type: 'card', props: { title: 'Shipping' } }, [
-    ...addressFields(f.shippingAddress),
-  ]),
-  group('billing', { type: 'card', props: { title: 'Billing' } }, [
-    ...addressFields(f.billingAddress),
-  ]),
+  group('shipping', { type: 'card', props: { title: 'Shipping' } }, addressFields(f.shippingAddress)),
+  group('billing', { type: 'card', props: { title: 'Billing' } }, addressFields(f.billingAddress)),
 ]);`;
 
   protected readonly codePatterns = `// Higher-order builder
-function cardSection(name: string, title: string, nodes: LayoutNode[]) {
-  return group(name, { type: 'card', props: { title } }, nodes);
+function cardSection(name: string, title: string, children: Record<string, LayoutNode>) {
+  return group(name, { type: 'card', props: { title } }, children);
 }
 
 // Extending base layouts
 function baseProfile(f: FieldTree<User>): LayoutNode[] {
-  return [group('basics', [control(f.name), control(f.email)])];
+  return [group('basics', { name: control(f.name), email: control(f.email) })];
 }
 const hrLayout = layout(form, f => [
   ...baseProfile(f),
-  cardSection('hr', 'HR Info', [control(f.department)]),
+  cardSection('hr', 'HR Info', { department: control(f.department) }),
 ]);`;
 }

@@ -66,13 +66,13 @@ export class LayoutExampleComponent {
   ]);
 
   protected readonly codeLayout = `userLayout = layout(this.userForm, (f) => [
-  group('personal', { component: CardGroupComponent, props: { title: 'Personal Info' } }, [
-    control(f.name, { type: 'text', props: { label: 'Full Name' } }),
-    control(f.role, { type: 'select', props: { label: 'Role', options: [...] } }),
-  ]),
-  group('details', { component: CardGroupComponent, hidden: this.isNotAdmin }, [
-    control(f.bio, { type: 'textarea' }),
-  ]),
+  group('personal', { component: CardGroupComponent, props: { title: 'Personal Info' } }, {
+    name: control(f.name, { type: 'text', props: { label: 'Full Name' } }),
+    role: control(f.role, { type: 'select', props: { label: 'Role', options: [...] } }),
+  }),
+  group('details', { component: CardGroupComponent, hidden: this.isNotAdmin }, {
+    bio: control(f.bio, { type: 'textarea' }),
+  }),
 ]);`;
 
   protected readonly codeHidden = `// In the schema — cross-field reference using valueOf()
@@ -80,5 +80,5 @@ hidden(f.bio, ({ valueOf }) => valueOf(f.role) !== 'admin');`;
 
   protected readonly codeGroupHidden = `// Layout-level — hides the entire card wrapper
 private isNotAdmin = computed(() => this.userForm.role().value() !== 'admin');
-group('details', { hidden: this.isNotAdmin }, [...]);`;
+group('details', { hidden: this.isNotAdmin }, { bio: control(f.bio) });`;
 }
