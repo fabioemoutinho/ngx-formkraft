@@ -17,4 +17,8 @@ export const routes: Routes = [
     path: 'controls',
     loadComponent: () => import('./examples/controls-example.component').then(m => m.ControlsExampleComponent),
   },
+  {
+    path: 'dynamic-array',
+    loadComponent: () => import('./examples/dynamic-array-example.component').then(m => m.DynamicArrayExampleComponent),
+  },
 ];

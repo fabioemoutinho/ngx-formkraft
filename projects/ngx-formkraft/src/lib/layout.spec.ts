@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { signal } from '@angular/core';
+import { FieldTree } from '@angular/forms/signals';
 import { control, group, array, layout } from './layout';
 
-// Minimal mock of FieldTree for testing builder functions
 function mockFieldTree<T>(value: T): any {
   const state = {
     value: signal(value),
@@ -30,7 +30,13 @@ function mockFieldTree<T>(value: T): any {
     reset: () => {},
     focusBoundControl: () => {},
   };
-  return Object.assign(() => state, {});
+  // Use a Proxy so child fields can be assigned (arrow fn `name` is non-writable)
+  const extras: Record<string | symbol, unknown> = {};
+  const fn = () => state;
+  return new Proxy(fn, {
+    set(_target, key, val) { extras[key as string] = val; return true; },
+    get(target, key) { return key in extras ? extras[key as string] : (target as any)[key]; },
+  });
 }
 
 describe('control()', () => {
@@ -60,19 +66,18 @@ describe('control()', () => {
 });
 
 describe('group()', () => {
-  it('should create a GroupNode with keyed children', () => {
+  it('should create a GroupNode with explicit children', () => {
     const f1 = mockFieldTree('a');
     const f2 = mockFieldTree('b');
-    const node = group('test', { a: control(f1), b: control(f2) });
+    const node = group({ a: control(f1), b: control(f2) });
     expect(node.kind).toBe('group');
-    expect(node.name).toBe('test');
     expect(Object.keys(node.children)).toEqual(['a', 'b']);
     expect(node.component).toBeUndefined();
   });
 
-  it('should create a GroupNode with options and keyed children', () => {
+  it('should create a GroupNode with explicit children and options', () => {
     class CardComp {}
-    const node = group('test', { component: CardComp as any, props: { title: 'Hello' } }, {});
+    const node = group({}, { component: CardComp as any, props: { title: 'Hello' } });
     expect(node.kind).toBe('group');
     expect(node.component).toBe(CardComp);
     expect(node.props?.['title']).toBe('Hello');
@@ -80,46 +85,87 @@ describe('group()', () => {
   });
 
   it('should support type string for registry resolution', () => {
-    const node = group('test', { type: 'card' }, {});
+    const node = group({}, { type: 'card' });
     expect(node.type).toBe('card');
     expect(node.component).toBeUndefined();
   });
 
   it('should support hidden signal', () => {
     const hiddenSig = signal(true);
-    const node = group('test', { hidden: hiddenSig }, {});
+    const node = group({}, { hidden: hiddenSig });
     expect(node.hidden).toBe(hiddenSig);
     expect(node.hidden!()).toBe(true);
+  });
+
+  it('should create a GroupNode from data-driven FieldTree + callback', () => {
+    const f = mockFieldTree({ name: '' }) as unknown as FieldTree<{ name: string }>;
+    (f as any).name = mockFieldTree('');
+    const node = group(f, (g) => ({ name: control(g.name) }));
+    expect(node.kind).toBe('group');
+    expect(Object.keys(node.children)).toEqual(['name']);
+  });
+
+  it('should create a GroupNode from FieldTree + options + callback', () => {
+    class CardComp {}
+    const f = mockFieldTree({ name: '' }) as unknown as FieldTree<{ name: string }>;
+    (f as any).name = mockFieldTree('');
+    const node = group(f, { component: CardComp as any }, (g) => ({ name: control(g.name) }));
+    expect(node.kind).toBe('group');
+    expect(node.component).toBe(CardComp);
+    expect(Object.keys(node.children)).toEqual(['name']);
   });
 });
 
 describe('array()', () => {
-  it('should create an ArrayNode with ordered children', () => {
+  it('should create a static ArrayNode with ordered children', () => {
     const f1 = mockFieldTree('a');
     const f2 = mockFieldTree('b');
-    const node = array('steps', [control(f1), control(f2)]);
+    const node = array([control(f1), control(f2)]);
     expect(node.kind).toBe('array');
-    expect(node.name).toBe('steps');
-    expect(node.children.length).toBe(2);
+    expect(node.children?.length).toBe(2);
+    expect(node.field).toBeUndefined();
   });
 
-  it('should create an ArrayNode with options and children', () => {
+  it('should create a static ArrayNode with options', () => {
     class StepperComp {}
     const f = mockFieldTree('a');
-    const node = array('steps', { component: StepperComp as any }, [control(f)]);
+    const node = array([control(f)], { component: StepperComp as any });
     expect(node.kind).toBe('array');
     expect(node.component).toBe(StepperComp);
-    expect(node.children.length).toBe(1);
+    expect(node.children?.length).toBe(1);
   });
 
-  it('should support type string', () => {
-    const node = array('steps', { type: 'stepper' }, []);
-    expect(node.type).toBe('stepper');
+  it('should create a renderer-owned ArrayNode from FieldTree', () => {
+    const f = mockFieldTree([]);
+    const node = array(f);
+    expect(node.kind).toBe('array');
+    expect(node.field).toBe(f);
+    expect(node.itemLayout).toBeUndefined();
+    expect(node.children).toBeUndefined();
   });
 
-  it('should support hidden signal', () => {
+  it('should create a renderer-owned ArrayNode with options', () => {
+    class ListComp {}
+    const f = mockFieldTree([]);
+    const node = array(f, { component: ListComp as any });
+    expect(node.kind).toBe('array');
+    expect(node.field).toBe(f);
+    expect(node.component).toBe(ListComp);
+  });
+
+  it('should create a library-iterated ArrayNode from FieldTree + callback', () => {
+    const f = mockFieldTree([{ name: '' }]);
+    const itemFn = (item: any) => control(item);
+    const node = array(f, itemFn);
+    expect(node.kind).toBe('array');
+    expect(node.field).toBe(f);
+    expect(node.itemLayout).toBe(itemFn);
+    expect(node.children).toBeUndefined();
+  });
+
+  it('should support hidden signal on static array', () => {
     const hiddenSig = signal(false);
-    const node = array('steps', { hidden: hiddenSig }, []);
+    const node = array([], { hidden: hiddenSig });
     expect(node.hidden).toBe(hiddenSig);
   });
 });
@@ -127,9 +173,8 @@ describe('array()', () => {
 describe('layout()', () => {
   it('should return a function that calls fn with the form ref', () => {
     const f = mockFieldTree({ name: '' });
-    const layoutFn = layout(f, (form) => [
-      control(form),
-    ]);
+    f.name = mockFieldTree('');
+    const layoutFn = layout(f, (form) => [control(form)]);
     expect(typeof layoutFn).toBe('function');
     const nodes = layoutFn();
     expect(nodes.length).toBe(1);
@@ -138,28 +183,11 @@ describe('layout()', () => {
 
   it('should return consistent results on multiple calls', () => {
     const f = mockFieldTree({ name: '' });
-    const layoutFn = layout(f, () => [
-      group('g', {}),
-    ]);
+    const layoutFn = layout(f, () => [group({})]);
     const r1 = layoutFn();
     const r2 = layoutFn();
     expect(r1.length).toBe(1);
     expect(r2.length).toBe(1);
     expect(r1[0].kind).toBe('group');
-  });
-});
-
-describe('component resolution', () => {
-  it('control type is set correctly for registry resolution', () => {
-    const f = mockFieldTree('');
-    const node = control(f, { type: 'text' });
-    expect(node.type).toBe('text');
-  });
-
-  it('control component is set correctly', () => {
-    class CustomComp {}
-    const f = mockFieldTree('');
-    const node = control(f, { component: CustomComp as any });
-    expect(node.component).toBe(CustomComp);
   });
 });

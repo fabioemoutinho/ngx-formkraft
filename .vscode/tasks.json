@@ -21,6 +21,41 @@
       }
     },
     {
+      "label": "build lib",
+      "type": "shell",
+      "command": "ng build ngx-formkraft --watch",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "typescript",
+        "pattern": "$tsc",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": { "regexp": "Building Angular Package" },
+          "endsPattern": { "regexp": "Built ngx-formkraft" }
+        }
+      }
+    },
+    {
+      "label": "ng serve",
+      "type": "shell",
+      "command": "ng serve",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "typescript",
+        "pattern": "$tsc",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": { "regexp": "(.*?)" },
+          "endsPattern": { "regexp": "bundle generation complete" }
+        }
+      }
+    },
+    {
+      "label": "Run all",
+      "dependsOn": ["ng serve", "build lib"],
+      "dependsOrder": "parallel"
+    },
+    {
       "type": "npm",
       "script": "test",
       "isBackground": true,

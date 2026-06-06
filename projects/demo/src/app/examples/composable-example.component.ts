@@ -31,8 +31,9 @@ function addressFields(addr: FieldTree<Address>): Record<string, LayoutNode> {
   imports: [FkFormComponent, JsonPipe],
   template: `
     <h3>Composable Layout — Reusable layout fragments</h3>
-    <p>Layouts are plain functions returning <code>LayoutNode[]</code> — composability is free via standard TypeScript.
-       The <code>addressFields()</code> function is reused for both shipping and billing.</p>
+    <p>Layouts are plain functions — composability is free via standard TypeScript.
+       The <code>addressFields()</code> function is reused for both shipping and billing
+       by passing it directly as the group callback.</p>
 
     <section class="demo-section">
       <fk-form [form]="orderForm" [layout]="orderLayout" />
@@ -69,12 +70,8 @@ export class ComposableExampleComponent {
 
   protected readonly orderLayout = layout(this.orderForm, (f) => [
     control(f.customerName, { type: 'text', props: { label: 'Customer Name' } }),
-    group('shipping', { component: CardGroupComponent, props: { title: 'Shipping Address' } },
-      addressFields(f.shippingAddress),
-    ),
-    group('billing', { component: CardGroupComponent, props: { title: 'Billing Address' } },
-      addressFields(f.billingAddress),
-    ),
+    group(f.shippingAddress, { component: CardGroupComponent, props: { title: 'Shipping Address' } }, addressFields),
+    group(f.billingAddress, { component: CardGroupComponent, props: { title: 'Billing Address' } }, addressFields),
   ]);
 
   protected readonly codeFragment = `function addressFields(addr: FieldTree<Address>): Record<string, LayoutNode> {
@@ -85,23 +82,24 @@ export class ComposableExampleComponent {
   };
 }`;
 
-  protected readonly codeCompose = `orderLayout = layout(this.orderForm, (f) => [
+  protected readonly codeCompose = `// Pass the function directly as the group callback
+orderLayout = layout(this.orderForm, (f) => [
   control(f.customerName, { type: 'text', props: { label: 'Customer Name' } }),
-  group('shipping', { type: 'card', props: { title: 'Shipping' } }, addressFields(f.shippingAddress)),
-  group('billing', { type: 'card', props: { title: 'Billing' } }, addressFields(f.billingAddress)),
+  group(f.shippingAddress, { component: CardGroupComponent, props: { title: 'Shipping' } }, addressFields),
+  group(f.billingAddress, { component: CardGroupComponent, props: { title: 'Billing' } }, addressFields),
 ]);`;
 
   protected readonly codePatterns = `// Higher-order builder
-function cardSection(name: string, title: string, children: Record<string, LayoutNode>) {
-  return group(name, { type: 'card', props: { title } }, children);
+function cardGroup(title: string, children: Record<string, LayoutNode>) {
+  return group(children, { component: CardGroupComponent, props: { title } });
 }
 
 // Extending base layouts
 function baseProfile(f: FieldTree<User>): LayoutNode[] {
-  return [group('basics', { name: control(f.name), email: control(f.email) })];
+  return [group({ name: control(f.name), email: control(f.email) })];
 }
-const hrLayout = layout(form, f => [
+const hrLayout = layout(form, (f) => [
   ...baseProfile(f),
-  cardSection('hr', 'HR Info', { department: control(f.department) }),
+  cardGroup('HR Info', { department: control(f.department) }),
 ]);`;
 }

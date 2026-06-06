@@ -55,24 +55,24 @@ export class LayoutExampleComponent {
   private readonly isNotAdmin = computed(() => this.userForm.role().value() !== 'admin');
 
   protected readonly userLayout = layout(this.userForm, (f) => [
-    group('personal', { component: CardGroupComponent, props: { title: 'Personal Info' } }, {
+    group({
       name: control(f.name, { type: 'text', props: { label: 'Full Name' } }),
       email: control(f.email, { type: 'text', props: { label: 'Email', inputType: 'email' } }),
       role: control(f.role, { type: 'select', props: { label: 'Role', options: ['user', 'editor', 'admin'] } }),
-    }),
-    group('details', { component: CardGroupComponent, props: { title: 'Details' }, hidden: this.isNotAdmin }, {
+    }, { component: CardGroupComponent, props: { title: 'Personal Info' } }),
+    group({
       bio: control(f.bio, { type: 'textarea', props: { label: 'Biography', placeholder: 'Tell us about yourself...' } }),
-    }),
+    }, { component: CardGroupComponent, props: { title: 'Details' }, hidden: this.isNotAdmin }),
   ]);
 
   protected readonly codeLayout = `userLayout = layout(this.userForm, (f) => [
-  group('personal', { component: CardGroupComponent, props: { title: 'Personal Info' } }, {
+  group({
     name: control(f.name, { type: 'text', props: { label: 'Full Name' } }),
     role: control(f.role, { type: 'select', props: { label: 'Role', options: [...] } }),
-  }),
-  group('details', { component: CardGroupComponent, hidden: this.isNotAdmin }, {
+  }, { component: CardGroupComponent, props: { title: 'Personal Info' } }),
+  group({
     bio: control(f.bio, { type: 'textarea' }),
-  }),
+  }, { component: CardGroupComponent, props: { title: 'Details' }, hidden: this.isNotAdmin }),
 ]);`;
 
   protected readonly codeHidden = `// In the schema — cross-field reference using valueOf()
@@ -80,5 +80,5 @@ hidden(f.bio, ({ valueOf }) => valueOf(f.role) !== 'admin');`;
 
   protected readonly codeGroupHidden = `// Layout-level — hides the entire card wrapper
 private isNotAdmin = computed(() => this.userForm.role().value() !== 'admin');
-group('details', { hidden: this.isNotAdmin }, { bio: control(f.bio) });`;
+group({ bio: control(f.bio) }, { hidden: this.isNotAdmin });`;
 }

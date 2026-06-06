@@ -1,37 +1,44 @@
 import {
+  Binding,
+  ChangeDetectionStrategy,
   Component,
   computed,
+  DirectiveWithBindings,
   effect,
   forwardRef,
   inject,
   input,
-  ChangeDetectionStrategy,
-  Type,
+  inputBinding,
   isSignal,
+  Signal,
+  Type,
 } from '@angular/core';
-import { NgComponentOutlet } from '@angular/common';
-import { LayoutNode, ControlNode, GroupNode, ArrayNode } from './layout-types';
+import { FieldTree, FormField } from '@angular/forms/signals';
+import { LayoutNode } from './layout-types';
 import { FORMKRAFT_TYPE_REGISTRY } from './provider';
+import { FkComponentOutletDirective } from './fk-component-outlet.directive';
 
 /**
- * Recursive layout node renderer.
- * Receives a LayoutNode and renders the appropriate component
- * using NgComponentOutlet with computed input bindings.
+ * Recursive layout node renderer. Receives a LayoutNode and renders the resolved
+ * component via `*fkComponentOutlet`, passing reactive signal bindings (and, for
+ * control nodes, the `FormField` host directive). When no component is resolved it
+ * falls back to rendering the node's children, each through a nested `fk-node`.
  *
- * For control nodes, `field` and `state` inputs are passed automatically,
- * so components implementing FormValueControl<T> get value, errors,
- * touched, disabled, etc. bound automatically via [formField].
+ * For control nodes whose component implements `FormValueControl<T>`, the `FormField`
+ * directive is attached so value, errors, touched, disabled, etc. are bound
+ * automatically from the field. Other control components receive `field` and `state`
+ * inputs instead.
  */
 @Component({
   selector: 'fk-node',
-  imports: [NgComponentOutlet, forwardRef(() => FkNodeComponent)],
+  imports: [FkComponentOutletDirective, forwardRef(() => FkNodeComponent)],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (!isHidden()) {
       @if (resolvedComponent(); as comp) {
-        <ng-container *ngComponentOutlet="comp; inputs: componentInputs()" />
+        <ng-container *fkComponentOutlet="comp; directives: directives(); bindings: bindings()" />
       } @else {
-        @for (child of fallbackChildren(); track $index) {
+        @for (child of children(); track child) {
           <fk-node [node]="child" />
         }
       }
@@ -45,59 +52,96 @@ export class FkNodeComponent {
 
   protected readonly isHidden = computed(() => {
     const node = this.node();
-
-    return (
-      (node as ControlNode).field?.().hidden() ??
-      (node as GroupNode | ArrayNode).hidden?.() ??
-      false
-    );
+    // A custom layout-level hidden signal always wins.
+    if (node.hidden) return node.hidden();
+    // Otherwise defer to the related field's native hidden() (signal forms schema rule):
+    // always present for controls, optional for groups/arrays that map to a field.
+    return node.field?.().hidden() ?? false;
   });
 
-  /** Resolved component type, or null if fallback rendering should be used. */
-  protected readonly resolvedComponent = computed((): Type<unknown> | null => {
-    const node = this.node();
-    return node.component ?? this.registry[node.type!] ?? null;
-  });
+  /** Resolved component type (explicit `component`, else `type` via the registry), or null for fallback rendering. */
+  protected readonly resolvedComponent = computed(
+    (): Type<unknown> | null => this.node().component ?? this.registry[this.node().type!] ?? null,
+  );
 
-  /** Input bindings for the resolved component. */
-  protected readonly componentInputs = computed((): Record<string, unknown> => {
+  /**
+   * Host directives applied to the resolved component. For a control node whose component
+   * implements `FormValueControl<T>`, attaches `FormField` bound to the field so the
+   * component's value/errors/touched/disabled are wired automatically. Undefined otherwise.
+   */
+  protected readonly directives = computed(
+    (): DirectiveWithBindings<unknown>[] | undefined => {
+      const node = this.node();
+      const comp = this.resolvedComponent();
+      if (!comp || node.kind !== 'control' || !isFormValueControl(comp)) return undefined;
+      const field = node.field;
+      return [{ type: FormField, bindings: [inputBinding('formField', () => field)] }];
+    },
+  );
+
+  /**
+   * Reactive input bindings for the resolved component, by node kind:
+   * - control + FormValueControl: only custom props (value etc. come from the FormField directive)
+   * - control (plain): `field` + `state` inputs, plus props
+   * - group: `children` (the keyed record), plus props
+   * - array (renderer-owned, no itemLayout): `field`, plus props
+   * - array (library-iterated): `children` (the per-item LayoutNodes), plus props
+   */
+  protected readonly bindings = computed((): Binding[] => {
     const node = this.node();
-    switch (node.kind) {
-      case 'control':
-        return {
-          field: node.field,
-          state: node.field(),
-          ...this.resolveProps(node.props),
-        };
-      case 'group':
-        return {
-          name: node.name,
-          children: node.children,
-          ...this.resolveProps(node.props),
-        };
-      case 'array':
-        return {
-          name: node.name,
-          children: node.children,
-          ...this.resolveProps(node.props),
-        };
+    const comp = this.resolvedComponent();
+    const props = propsToBindings(node.props);
+
+    if (node.kind === 'control') {
+      if (comp && isFormValueControl(comp)) return props;
+      const { field } = node;
+      return [inputBinding('field', () => field), inputBinding('state', () => field()), ...props];
     }
+    if (node.kind === 'group') {
+      const { children } = node;
+      return [inputBinding('children', () => children), ...props];
+    }
+    // array
+    if (node.field && !node.itemLayout) {
+      const { field } = node;
+      return [inputBinding('field', () => field), ...props];
+    }
+    return [inputBinding('children', () => this.arrayItems()), ...props];
+  });
+
+  // Caches one computed per item field, keyed by the field's identity. Signal forms
+  // preserves a field's identity across value changes (only structural changes — add,
+  // remove, reorder — swap identities), so the same item always yields the same
+  // LayoutNode reference. That lets `@for (track node)` reuse components when the user
+  // types, instead of recreating them and losing focus. WeakMap, so dropped items are GC'd.
+  private readonly _itemComputeds = new WeakMap<object, Signal<LayoutNode>>();
+
+  private readonly arrayItems = computed((): LayoutNode[] => {
+    const node = this.node();
+    if (node.kind !== 'array' || !node.field || !node.itemLayout) return [];
+    const { field, itemLayout } = node;
+    return Array.from(field, (itemField) => {
+      const key = itemField as object;
+      let item = this._itemComputeds.get(key);
+      if (!item) {
+        item = computed(() => itemLayout(itemField as FieldTree<any>));
+        this._itemComputeds.set(key, item);
+      }
+      return item();
+    });
   });
 
   /** Children to render when no wrapper component is resolved (groups/arrays only). */
-  protected readonly fallbackChildren = computed((): LayoutNode[] => {
+  protected readonly children = computed((): LayoutNode[] => {
     const node = this.node();
-
     if (node.kind === 'group') return Object.values(node.children);
-    if (node.kind === 'array') return node.children;
-
+    if (node.kind === 'array') return this.arrayItems();
     return [];
   });
 
   /** Dev-mode warning when a control node has no component resolved. */
   readonly #warnMissingControl = effect(() => {
-    const node = this.node();
-    if (node.kind === 'control' && !this.resolvedComponent()) {
+    if (this.node().kind === 'control' && !this.resolvedComponent()) {
       if (typeof ngDevMode === 'undefined' || ngDevMode) {
         console.warn(
           `[ngx-formkraft] No component resolved for control node.`,
@@ -106,16 +150,26 @@ export class FkNodeComponent {
       }
     }
   });
+}
 
-  /**
-   * Evaluates prop values, subscribing to signals if necessary.
-   */
-  private resolveProps(props?: Record<string, unknown | (() => unknown)>): Record<string, unknown> {
-    if (!props) return {};
-    const resolved: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(props)) {
-      resolved[key] = isSignal(value) ? value() : value;
-    }
-    return resolved;
-  }
+/**
+ * Detects whether a component implements `FormValueControl<T>` by inspecting its compiled
+ * definition (`ɵcmp`) for a `value` input and a `valueChange` output — the two-way `value`
+ * contract `FormField` binds to. Reads the internal def because there's no public runtime
+ * marker for the interface.
+ */
+function isFormValueControl(comp: Type<unknown>): boolean {
+  const cmpDef = (comp as any).ɵcmp;
+  return cmpDef?.inputs?.value !== undefined && cmpDef?.outputs?.valueChange !== undefined;
+}
+
+/**
+ * Converts a props record into input bindings. Signal-valued props are bound directly so the
+ * component stays subscribed to them; plain values are wrapped in a constant accessor.
+ */
+function propsToBindings(props?: Record<string, unknown>): Binding[] {
+  if (!props) return [];
+  return Object.entries(props).map(([key, value]) =>
+    inputBinding(key, isSignal(value) ? (value as Signal<unknown>) : () => value),
+  );
 }

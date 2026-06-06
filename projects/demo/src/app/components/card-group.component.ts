@@ -21,7 +21,6 @@ import { FkChildrenComponent, LayoutNode } from 'ngx-formkraft';
   `,
 })
 export class CardGroupComponent {
-  readonly name = input.required<string>();
   readonly title = input('');
   readonly children = input.required<Record<string, LayoutNode>>();
 }

@@ -17,6 +17,7 @@ import { MatAnchor } from '@angular/material/button';
       <a mat-button routerLink="/layout" routerLinkActive="active">Layout + Groups</a>
       <a mat-button routerLink="/composable" routerLinkActive="active">Composable</a>
       <a mat-button routerLink="/controls" routerLinkActive="active">Control Patterns</a>
+      <a mat-button routerLink="/dynamic-array" routerLinkActive="active">Dynamic Array</a>
     </nav>
     <main>
       <router-outlet />

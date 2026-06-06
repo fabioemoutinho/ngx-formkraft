@@ -61,14 +61,14 @@ export class ControlsExampleComponent {
   });
 
   protected readonly feedbackLayout = layout(this.feedbackForm, (f) => [
-    group('info', { component: CardGroupComponent, props: { title: 'Your Info' } }, {
+    group({
       name: control(f.name, { type: 'text', props: { label: 'Name' } }),
       email: control(f.email, { type: 'text', props: { label: 'Email', inputType: 'email' } }),
-    }),
-    group('feedback', { component: CardGroupComponent, props: { title: 'Feedback' } }, {
+    }, { component: CardGroupComponent, props: { title: 'Your Info' } }),
+    group({
       rating: control(f.rating, { component: RatingInputComponent, props: { label: 'How would you rate us?' } }),
       comment: control(f.comment, { type: 'textarea', props: { label: 'Comments', placeholder: 'Optional...' } }),
-    }),
+    }, { component: CardGroupComponent, props: { title: 'Feedback' } }),
   ]);
 
   protected readonly patternACode = `@Component({
@@ -88,30 +88,22 @@ export class TextInputComponent {
 }`;
 
   protected readonly patternBCode = `@Component({
-  imports: [FormField],
   template: \`
-    <div [formField]="field()">
-      <div class="stars">
-        @for (star of [1,2,3,4,5]; track star) {
-          <button [class.filled]="star <= value()"
-                  (click)="value.set(star)">
-            {{ star <= value() ? '★' : '☆' }}
-          </button>
-        }
-      </div>
-      @if (touched() && errors().length) {
-        <span class="error">{{ errors()[0].message }}</span>
+    <div class="stars">
+      @for (star of [1,2,3,4,5]; track star) {
+        <button [class.filled]="star <= value()"
+                (click)="value.set(star)">
+          {{ star <= value() ? '★' : '☆' }}
+        </button>
       }
     </div>
   \`,
 })
 export class RatingInputComponent implements FormValueControl<number> {
-  readonly field = input.required<FieldTree<number>>();
-  readonly value = model(0);          // required — two-way bound
-  readonly errors = input([]);         // optional — auto-bound
-  readonly disabled = input(false);    // optional — auto-bound
-  readonly touched = model(false);     // optional — auto-bound
-  readonly label = input('');          // custom prop
+  readonly value = model(0);          // required — two-way bound by FormField
+  readonly errors = input([]);         // optional — auto-bound by FormField
+  readonly touched = model(false);     // optional — auto-bound by FormField
+  readonly label = input('');          // custom prop — passed from layout
 }`;
 
   protected readonly layoutCode = `// Text input uses type registry (Pattern A — wraps Material)
