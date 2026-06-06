@@ -8,9 +8,9 @@ import { MatAnchor } from '@angular/material/button';
   imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbar, MatAnchor],
   template: `
     <mat-toolbar color="primary">
-      <span>ngx-formkraft</span>
+      <span>ngx-signal-forms-renderer</span>
       <span class="spacer"></span>
-      <a mat-button href="https://github.com/fabioemoutinho/ngx-formkraft" target="_blank">GitHub</a>
+      <a mat-button href="https://github.com/fabioemoutinho/ngx-signal-forms-renderer" target="_blank">GitHub</a>
     </mat-toolbar>
     <nav>
       <a mat-button routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Basic</a>

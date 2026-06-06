@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { form, required, min } from '@angular/forms/signals';
-import { FkFormComponent, control, group, layout } from 'ngx-formkraft';
+import { SfrFormComponent, control, group, layout } from 'ngx-signal-forms-renderer';
 import { CardGroupComponent } from '../components/card-group.component';
 import { RatingInputComponent } from '../components/rating-input.component';
 
@@ -14,13 +14,13 @@ interface FeedbackForm {
 
 @Component({
   selector: 'app-controls-example',
-  imports: [FkFormComponent, JsonPipe],
+  imports: [SfrFormComponent, JsonPipe],
   template: `
     <h3>Control Patterns — Wrapping vs Custom</h3>
-    <p>Two ways to build control components for ngx-formkraft:</p>
+    <p>Two ways to build control components for ngx-signal-forms-renderer:</p>
 
     <section class="demo-section">
-      <fk-form [form]="feedbackForm" [layout]="feedbackLayout" />
+      <sfr-form [form]="feedbackForm" [layout]="feedbackLayout" />
       <pre>Value: {{ feedbackForm().value() | json }}</pre>
     </section>
 

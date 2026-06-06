@@ -5,7 +5,7 @@ import {
   Signal,
 } from '@angular/core';
 import { FieldTree } from '@angular/forms/signals';
-import { FkNodeComponent } from './fk-node.component';
+import { SfrNodeComponent } from './sfr-node.component';
 import { LayoutNode } from './layout-types';
 
 /**
@@ -13,19 +13,19 @@ import { LayoutNode } from './layout-types';
  * Takes a signal form and a layout function, then renders the form.
  *
  * @example
- * <fk-form [form]="userForm" [layout]="userLayout" />
+ * <sfr-form [form]="userForm" [layout]="userLayout" />
  */
 @Component({
-  selector: 'fk-form',
-  imports: [FkNodeComponent],
+  selector: 'sfr-form',
+  imports: [SfrNodeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (node of layout()(); track node) {
-      <fk-node [node]="node" />
+      <sfr-node [node]="node" />
     }
   `,
 })
-export class FkFormComponent<T> {
+export class SfrFormComponent<T> {
   /** The signal form FieldTree. */
   readonly form = input.required<FieldTree<T>>();
 

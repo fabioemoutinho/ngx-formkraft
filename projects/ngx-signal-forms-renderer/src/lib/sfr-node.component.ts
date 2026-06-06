@@ -15,14 +15,14 @@ import {
 } from '@angular/core';
 import { FieldTree, FormField } from '@angular/forms/signals';
 import { LayoutNode } from './layout-types';
-import { FORMKRAFT_TYPE_REGISTRY } from './provider';
-import { FkComponentOutletDirective } from './fk-component-outlet.directive';
+import { SIGNAL_FORMS_RENDERER_TYPE_REGISTRY } from './provider';
+import { SfrComponentOutletDirective } from './sfr-component-outlet.directive';
 
 /**
  * Recursive layout node renderer. Receives a LayoutNode and renders the resolved
- * component via `*fkComponentOutlet`, passing reactive signal bindings (and, for
+ * component via `*sfrComponentOutlet`, passing reactive signal bindings (and, for
  * control nodes, the `FormField` host directive). When no component is resolved it
- * falls back to rendering the node's children, each through a nested `fk-node`.
+ * falls back to rendering the node's children, each through a nested `sfr-node`.
  *
  * For control nodes whose component implements `FormValueControl<T>`, the `FormField`
  * directive is attached so value, errors, touched, disabled, etc. are bound
@@ -30,25 +30,25 @@ import { FkComponentOutletDirective } from './fk-component-outlet.directive';
  * inputs instead.
  */
 @Component({
-  selector: 'fk-node',
-  imports: [FkComponentOutletDirective, forwardRef(() => FkNodeComponent)],
+  selector: 'sfr-node',
+  imports: [SfrComponentOutletDirective, forwardRef(() => SfrNodeComponent)],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (!isHidden()) {
       @if (resolvedComponent(); as comp) {
-        <ng-container *fkComponentOutlet="comp; directives: directives(); bindings: bindings()" />
+        <ng-container *sfrComponentOutlet="comp; directives: directives(); bindings: bindings()" />
       } @else {
         @for (child of children(); track child) {
-          <fk-node [node]="child" />
+          <sfr-node [node]="child" />
         }
       }
     }
   `,
 })
-export class FkNodeComponent {
+export class SfrNodeComponent {
   readonly node = input.required<LayoutNode>();
 
-  private readonly registry = inject(FORMKRAFT_TYPE_REGISTRY);
+  private readonly registry = inject(SIGNAL_FORMS_RENDERER_TYPE_REGISTRY);
 
   protected readonly isHidden = computed(() => {
     const node = this.node();
@@ -144,8 +144,8 @@ export class FkNodeComponent {
     if (this.node().kind === 'control' && !this.resolvedComponent()) {
       if (typeof ngDevMode === 'undefined' || ngDevMode) {
         console.warn(
-          `[ngx-formkraft] No component resolved for control node.`,
-          `Provide a 'component' or 'type' in the control() call, or register a type in provideFormKraft().`,
+          `[ngx-signal-forms-renderer] No component resolved for control node.`,
+          `Provide a 'component' or 'type' in the control() call, or register a type in provideSignalFormsRenderer().`,
         );
       }
     }

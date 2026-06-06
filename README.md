@@ -1,18 +1,18 @@
-# ngx-formkraft
+# ngx-signal-forms-renderer
 
 Auto-rendering forms for Angular Signal Forms.
 
-**ngx-formkraft** is a UI-agnostic library that renders forms from a layout description, powered by Angular Signal Forms (`@angular/forms/signals`). It separates form concerns into two layers:
+**ngx-signal-forms-renderer** is a UI-agnostic library that renders forms from a layout description, powered by Angular Signal Forms (`@angular/forms/signals`). It separates form concerns into two layers:
 
 1. **Signal Forms** — data model + validation (your domain, untouched)
 2. **Layout** — visual structure + rendering instructions (controls, groups, arrays)
 
-[Live Demo](https://fabioemoutinho.github.io/ngx-formkraft)
+[Live Demo](https://fabioemoutinho.github.io/ngx-signal-forms-renderer)
 
 ## Installation
 
 ```bash
-npm install ngx-formkraft
+npm install ngx-signal-forms-renderer
 ```
 
 > Requires Angular 21+ with experimental signal forms enabled.
@@ -23,13 +23,13 @@ npm install ngx-formkraft
 
 ```typescript
 // app.config.ts
-import { provideFormKraft } from 'ngx-formkraft';
+import { provideSignalFormsRenderer } from 'ngx-signal-forms-renderer';
 import { TextInputComponent } from './components/text-input.component';
 import { SelectComponent } from './components/select.component';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideFormKraft({
+    provideSignalFormsRenderer({
       types: {
         text: TextInputComponent,
         select: SelectComponent,
@@ -63,7 +63,7 @@ const userForm = form(model, (f) => {
 ### 3. Describe the layout
 
 ```typescript
-import { layout, control, group } from 'ngx-formkraft';
+import { layout, control, group } from 'ngx-signal-forms-renderer';
 
 const userLayout = layout(userForm, (f) => [
   group('personal', { type: 'card', props: { title: 'Personal Info' } }, {
@@ -77,7 +77,7 @@ const userLayout = layout(userForm, (f) => [
 ### 4. Render it
 
 ```html
-<fk-form [form]="userForm" [layout]="userLayout" />
+<sfr-form [form]="userForm" [layout]="userLayout" />
 ```
 
 ## Core Concepts
@@ -89,7 +89,7 @@ Signal Form (data + validation)          Layout (structure + rendering)
 form(model, schema)                      layout(form, f => [...])
          \                                        /
           \                                      /
-           +------  <fk-form>  ----------------+
+           +------  <sfr-form>  ----------------+
                     walks layout tree
                     resolves components
                     renders via NgComponentOutlet
@@ -112,7 +112,7 @@ Every node (control, group, or array) resolves its component with the same prior
 // Direct component — takes precedence
 control(f.bio, { component: RichTextEditor, props: { label: 'Bio' } });
 
-// String type — resolved from provideFormKraft({ types: { text: TextInput } })
+// String type — resolved from provideSignalFormsRenderer({ types: { text: TextInput } })
 control(f.name, { type: 'text', props: { label: 'Name' } });
 ```
 
@@ -226,12 +226,12 @@ const myLayout = layout(userForm, (f) => [
 
 ### Provider
 
-#### `provideFormKraft(config)`
+#### `provideSignalFormsRenderer(config)`
 
 Registers the type registry at the environment level.
 
 ```typescript
-provideFormKraft({
+provideSignalFormsRenderer({
   types: {
     text: TextInputComponent,
     select: SelectInputComponent,
@@ -243,12 +243,12 @@ provideFormKraft({
 
 ### Components
 
-#### `<fk-form>`
+#### `<sfr-form>`
 
 Top-level renderer. Takes a form and a layout function.
 
 ```html
-<fk-form [form]="userForm" [layout]="userLayout" />
+<sfr-form [form]="userForm" [layout]="userLayout" />
 ```
 
 | Input    | Type                 | Description                             |
@@ -256,7 +256,7 @@ Top-level renderer. Takes a form and a layout function.
 | `form`   | `FieldTree<T>`       | Required. The signal form.              |
 | `layout` | `() => LayoutNode[]` | Required. Layout function from `layout()`. |
 
-#### `<fk-children>`
+#### `<sfr-children>`
 
 Helper for custom group and array components to render their children.
 
@@ -266,11 +266,11 @@ Helper for custom group and array components to render their children.
     <mat-card>
       <mat-card-header>{{ title() }}</mat-card-header>
       <mat-card-content>
-        <fk-children [children]="children()" />
+        <sfr-children [children]="children()" />
       </mat-card-content>
     </mat-card>
   `,
-  imports: [FkChildrenComponent],
+  imports: [SfrChildrenComponent],
 })
 export class CardGroupComponent {
   name = input.required<string>();
@@ -328,7 +328,7 @@ export class CardGroupComponent {
 }
 ```
 
-Use `<fk-children [children]="children()" />` to render them, or iterate `children()` by key for custom placement.
+Use `<sfr-children [children]="children()" />` to render them, or iterate `children()` by key for custom placement.
 
 ### Array Components
 
@@ -342,7 +342,7 @@ export class StepperComponent {
 }
 ```
 
-Use `<fk-children [children]="children()" />` to render them in order, or iterate manually for full control.
+Use `<sfr-children [children]="children()" />` to render them in order, or iterate manually for full control.
 
 ## Layout Composability
 
@@ -392,16 +392,16 @@ const hrLayout = layout(userForm, (f) => [
 npm install
 
 # Build library
-npx ng build ngx-formkraft
+npx ng build ngx-signal-forms-renderer
 
 # Run demo app
 npx ng serve demo
 
 # Run tests
-npx ng test ngx-formkraft
+npx ng test ngx-signal-forms-renderer
 
 # Build demo for deployment
-npx ng build demo --base-href /ngx-formkraft/
+npx ng build demo --base-href /ngx-signal-forms-renderer/
 ```
 
 ## License

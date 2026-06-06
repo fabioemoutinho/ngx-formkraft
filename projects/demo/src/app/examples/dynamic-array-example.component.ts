@@ -1,7 +1,7 @@
 import { Component, computed, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { form, FieldTree } from '@angular/forms/signals';
-import { FkFormComponent, control, group, array, layout } from 'ngx-formkraft';
+import { SfrFormComponent, control, group, array, layout } from 'ngx-signal-forms-renderer';
 import { CardGroupComponent } from '../components/card-group.component';
 import { SortableListComponent } from '../components/sortable-list.component';
 
@@ -23,7 +23,7 @@ function budgetItemLayout(item: FieldTree<BudgetItem>) {
 
 @Component({
   selector: 'app-dynamic-array-example',
-  imports: [FkFormComponent, JsonPipe],
+  imports: [SfrFormComponent, JsonPipe],
   template: `
     <h3>Dynamic Array — Reactive layout from signal array</h3>
     <p>
@@ -32,7 +32,7 @@ function budgetItemLayout(item: FieldTree<BudgetItem>) {
     </p>
 
     <section class="demo-section">
-      <fk-form [form]="budgetForm" [layout]="budgetLayout" />
+      <sfr-form [form]="budgetForm" [layout]="budgetLayout" />
 
       <div class="actions">
         <button (click)="addItem()">+ Add Item</button>
@@ -108,7 +108,7 @@ export class DynamicArrayExampleComponent {
   ),
 ]);
 
-// fk-node iterates f.items via budgetItemLayout, passes LayoutNode[]
+// sfr-node iterates f.items via budgetItemLayout, passes LayoutNode[]
 // to SortableListComponent as 'children'. @for (track node)
 // moves components on reorder — no focus loss.`;
 }

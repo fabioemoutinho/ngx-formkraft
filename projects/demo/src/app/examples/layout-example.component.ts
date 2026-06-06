@@ -1,7 +1,7 @@
 import { Component, computed, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { form, required, email, hidden } from '@angular/forms/signals';
-import { FkFormComponent, control, group, layout } from 'ngx-formkraft';
+import { SfrFormComponent, control, group, layout } from 'ngx-signal-forms-renderer';
 import { CardGroupComponent } from '../components/card-group.component';
 
 interface UserProfile {
@@ -13,7 +13,7 @@ interface UserProfile {
 
 @Component({
   selector: 'app-layout-example',
-  imports: [FkFormComponent, JsonPipe],
+  imports: [SfrFormComponent, JsonPipe],
   template: `
     <h3>Layout Example — Custom groups with CardComponent</h3>
     <p>Fields are organized into card groups using <code>group()</code> with a custom <code>CardGroupComponent</code>.
@@ -21,7 +21,7 @@ interface UserProfile {
        signal forms <code>hidden()</code> (field-level) and group <code>hidden</code> signal (layout-level).</p>
 
     <section class="demo-section">
-      <fk-form [form]="userForm" [layout]="userLayout" />
+      <sfr-form [form]="userForm" [layout]="userLayout" />
       <pre>Value: {{ userForm().value() | json }}</pre>
       <p><em>Try selecting "admin" in the Role dropdown to reveal the Details section.</em></p>
     </section>

@@ -114,7 +114,7 @@ export function array<T>(
  * Creates a reactive layout for a form. `fn` receives the form's FieldTree<T> for
  * type-safe path access (e.g. `f.name`, `f.items`).
  *
- * Returns a `computed` Signal<LayoutNode[]>, re-evaluated by `<fk-form>` when its
+ * Returns a `computed` Signal<LayoutNode[]>, re-evaluated by `<sfr-form>` when its
  * dependencies change. Reading signals inside `fn` makes the layout automatically
  * reactive — e.g. branch on a field's value to add or drop nodes.
  *

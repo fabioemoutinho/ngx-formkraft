@@ -4,32 +4,32 @@ import {
   computed,
   input,
 } from '@angular/core';
-import { FkNodeComponent } from './fk-node.component';
+import { SfrNodeComponent } from './sfr-node.component';
 import { LayoutNode } from './layout-types';
 
 /**
  * Helper component for custom wrapper components (groups and arrays).
  * Accepts children as either a Record (from groups) or array (from arrays)
- * and renders each child using `<fk-node>`.
+ * and renders each child using `<sfr-node>`.
  *
  * @example
  * // In a custom group component (receives Record):
- * <fk-children [children]="children()" />
+ * <sfr-children [children]="children()" />
  *
  * // In a custom array component (receives array):
- * <fk-children [children]="children()" />
+ * <sfr-children [children]="children()" />
  */
 @Component({
-  selector: 'fk-children',
-  imports: [FkNodeComponent],
+  selector: 'sfr-children',
+  imports: [SfrNodeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (child of childList(); track $index) {
-      <fk-node [node]="child" />
+      <sfr-node [node]="child" />
     }
   `,
 })
-export class FkChildrenComponent {
+export class SfrChildrenComponent {
   readonly children = input.required<LayoutNode[] | Record<string, LayoutNode>>();
 
   /** Normalizes children to an array for iteration. */

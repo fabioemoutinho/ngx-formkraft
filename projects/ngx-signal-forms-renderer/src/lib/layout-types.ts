@@ -53,7 +53,7 @@ export interface GroupNode extends LayoutNodeOptions {
  * Three modes:
  * - Static:           children: LayoutNode[]                  (renderer receives children)
  * - Renderer-owned:   field: FieldTree<T[]>                   (renderer receives field)
- * - Library-iterated: field: FieldTree<T[]> + itemLayout fn   (fk-node iterates reactively)
+ * - Library-iterated: field: FieldTree<T[]> + itemLayout fn   (sfr-node iterates reactively)
  */
 export interface ArrayNode extends LayoutNodeOptions {
   readonly kind: 'array';

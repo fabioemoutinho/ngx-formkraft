@@ -7,8 +7,8 @@
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
     "paths": {
-      "ngx-formkraft": [
-        "./dist/ngx-formkraft"
+      "ngx-signal-forms-renderer": [
+        "./dist/ngx-signal-forms-renderer"
       ]
     },
     "noFallthroughCasesInSwitch": true,
@@ -27,10 +27,10 @@
   "files": [],
   "references": [
     {
-      "path": "./projects/ngx-formkraft/tsconfig.lib.json"
+      "path": "./projects/ngx-signal-forms-renderer/tsconfig.lib.json"
     },
     {
-      "path": "./projects/ngx-formkraft/tsconfig.spec.json"
+      "path": "./projects/ngx-signal-forms-renderer/tsconfig.spec.json"
     },
     {
       "path": "./projects/demo/tsconfig.app.json"

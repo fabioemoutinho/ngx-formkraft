@@ -23,7 +23,7 @@
     {
       "label": "build lib",
       "type": "shell",
-      "command": "ng build ngx-formkraft --watch",
+      "command": "ng build ngx-signal-forms-renderer --watch",
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",
@@ -31,7 +31,7 @@
         "background": {
           "activeOnStart": true,
           "beginsPattern": { "regexp": "Building Angular Package" },
-          "endsPattern": { "regexp": "Built ngx-formkraft" }
+          "endsPattern": { "regexp": "Built ngx-signal-forms-renderer" }
         }
       }
     },

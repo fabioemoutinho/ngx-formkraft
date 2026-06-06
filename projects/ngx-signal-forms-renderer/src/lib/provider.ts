@@ -9,18 +9,18 @@ import {
  * Registry mapping string type keys to component types.
  * A single unified registry for fields, groups, and arrays.
  */
-export type FormKraftTypeRegistry = Record<string, Type<unknown>>;
+export type SignalFormsRendererTypeRegistry = Record<string, Type<unknown>>;
 
 /** @internal */
-export const FORMKRAFT_TYPE_REGISTRY = new InjectionToken<FormKraftTypeRegistry>(
-  'FORMKRAFT_TYPE_REGISTRY',
+export const SIGNAL_FORMS_RENDERER_TYPE_REGISTRY = new InjectionToken<SignalFormsRendererTypeRegistry>(
+  'SIGNAL_FORMS_RENDERER_TYPE_REGISTRY',
   { factory: () => ({}) },
 );
 
 /**
- * Configuration for provideFormKraft().
+ * Configuration for provideSignalFormsRenderer().
  */
-export interface FormKraftConfig {
+export interface SignalFormsRendererConfig {
   /**
    * Map of string type keys to component types.
    * Used for fields, groups, and arrays alike.
@@ -33,17 +33,17 @@ export interface FormKraftConfig {
    *   repeatable: RepeatableSectionComponent,
    * }
    */
-  types?: FormKraftTypeRegistry;
+  types?: SignalFormsRendererTypeRegistry;
 }
 
 /**
- * Provides the FormKraft configuration at the environment level.
+ * Provides the SignalFormsRenderer configuration at the environment level.
  *
  * @example
  * // app.config.ts
  * export const appConfig: ApplicationConfig = {
  *   providers: [
- *     provideFormKraft({
+ *     provideSignalFormsRenderer({
  *       types: {
  *         text: TextInputComponent,
  *         select: SelectComponent,
@@ -53,10 +53,10 @@ export interface FormKraftConfig {
  *   ]
  * };
  */
-export function provideFormKraft(config: FormKraftConfig = {}): EnvironmentProviders {
+export function provideSignalFormsRenderer(config: SignalFormsRendererConfig = {}): EnvironmentProviders {
   return makeEnvironmentProviders([
     {
-      provide: FORMKRAFT_TYPE_REGISTRY,
+      provide: SIGNAL_FORMS_RENDERER_TYPE_REGISTRY,
       useValue: config.types ?? {},
     },
   ]);

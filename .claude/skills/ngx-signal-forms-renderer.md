@@ -1,13 +1,13 @@
 ---
-name: ngx-formkraft
-description: Use this skill when working with ngx-formkraft — an Angular library for auto-rendering forms using Signal Forms. Trigger when code imports from 'ngx-formkraft', uses FkFormComponent, control(), group(), array(), layout(), or provideFormKraft().
+name: ngx-signal-forms-renderer
+description: Use this skill when working with ngx-signal-forms-renderer — an Angular library for auto-rendering forms using Signal Forms. Trigger when code imports from 'ngx-signal-forms-renderer', uses SfrFormComponent, control(), group(), array(), layout(), or provideSignalFormsRenderer().
 ---
 
-# ngx-formkraft — Signal Forms Auto-Renderer
+# ngx-signal-forms-renderer — Signal Forms Auto-Renderer
 
 ## What it is
 
-ngx-formkraft auto-renders Angular forms from configuration, powered by Angular Signal Forms (`@angular/forms/signals`). Three layers:
+ngx-signal-forms-renderer auto-renders Angular forms from configuration, powered by Angular Signal Forms (`@angular/forms/signals`). Three layers:
 
 1. **Signal Forms** — data model + validation (`form()`, `required()`, `hidden()`, etc.)
 2. **Layout** — visual structure + rendering instructions: controls, groups, arrays
@@ -23,9 +23,9 @@ ngx-formkraft auto-renders Angular forms from configuration, powered by Angular 
 ### Provider (app.config.ts)
 
 ```typescript
-import { provideFormKraft } from 'ngx-formkraft';
+import { provideSignalFormsRenderer } from 'ngx-signal-forms-renderer';
 
-provideFormKraft({
+provideSignalFormsRenderer({
   types: {
     text: TextInputComponent,
     select: SelectComponent,
@@ -38,7 +38,7 @@ provideFormKraft({
 ### Builder Functions
 
 ```typescript
-import { layout, control, group, array } from 'ngx-formkraft';
+import { layout, control, group, array } from 'ngx-signal-forms-renderer';
 
 // control(fieldRef, options?) — renders a form control
 control(f.name, { type: 'text', props: { label: 'Name' } })
@@ -62,10 +62,10 @@ const myLayout = layout(myForm, f => [
 
 ```html
 <!-- With explicit layout -->
-<fk-form [form]="myForm" [fieldDefs]="fieldDefs" [layout]="myLayout" />
+<sfr-form [form]="myForm" [fieldDefs]="fieldDefs" [layout]="myLayout" />
 
 <!-- Auto-render from fieldDefs (no layout needed) -->
-<fk-form [form]="myForm" [fieldDefs]="fieldDefs" />
+<sfr-form [form]="myForm" [fieldDefs]="fieldDefs" />
 ```
 
 ### Component Resolution
@@ -117,10 +117,10 @@ export class RatingComponent implements FormValueControl<number> {
 @Component({
   template: `
     <my-wrapper>
-      <fk-children [children]="children()" [fieldDefs]="fieldDefs()" />
+      <sfr-children [children]="children()" [fieldDefs]="fieldDefs()" />
     </my-wrapper>
   `,
-  imports: [FkChildrenComponent],
+  imports: [SfrChildrenComponent],
 })
 export class MyGroupComponent {
   readonly name = input.required<string>();

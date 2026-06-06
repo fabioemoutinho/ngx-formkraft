@@ -1,7 +1,7 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideFormKraft } from 'ngx-formkraft';
+import { provideSignalFormsRenderer } from 'ngx-signal-forms-renderer';
 import { routes } from './app.routes';
 import { TextInputComponent } from './components/text-input.component';
 import { SelectInputComponent } from './components/select-input.component';
@@ -12,7 +12,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideAnimationsAsync(),
-    provideFormKraft({
+    provideSignalFormsRenderer({
       types: {
         text: TextInputComponent,
         select: SelectInputComponent,

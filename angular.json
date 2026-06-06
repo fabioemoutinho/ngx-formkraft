@@ -6,20 +6,20 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "ngx-formkraft": {
+    "ngx-signal-forms-renderer": {
       "projectType": "library",
-      "root": "projects/ngx-formkraft",
-      "sourceRoot": "projects/ngx-formkraft/src",
-      "prefix": "fk",
+      "root": "projects/ngx-signal-forms-renderer",
+      "sourceRoot": "projects/ngx-signal-forms-renderer/src",
+      "prefix": "sfr",
       "architect": {
         "build": {
           "builder": "@angular/build:ng-packagr",
           "configurations": {
             "production": {
-              "tsConfig": "projects/ngx-formkraft/tsconfig.lib.prod.json"
+              "tsConfig": "projects/ngx-signal-forms-renderer/tsconfig.lib.prod.json"
             },
             "development": {
-              "tsConfig": "projects/ngx-formkraft/tsconfig.lib.json"
+              "tsConfig": "projects/ngx-signal-forms-renderer/tsconfig.lib.json"
             }
           },
           "defaultConfiguration": "production"
@@ -27,7 +27,7 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "tsConfig": "projects/ngx-formkraft/tsconfig.spec.json"
+            "tsConfig": "projects/ngx-signal-forms-renderer/tsconfig.spec.json"
           }
         }
       }

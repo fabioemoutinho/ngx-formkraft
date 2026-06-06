@@ -2,8 +2,8 @@ import { Component, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { form, required } from '@angular/forms/signals';
 import { FieldTree } from '@angular/forms/signals';
-import { FkFormComponent, control, group, layout } from 'ngx-formkraft';
-import type { LayoutNode } from 'ngx-formkraft';
+import { SfrFormComponent, control, group, layout } from 'ngx-signal-forms-renderer';
+import type { LayoutNode } from 'ngx-signal-forms-renderer';
 import { CardGroupComponent } from '../components/card-group.component';
 
 interface Address {
@@ -28,7 +28,7 @@ function addressFields(addr: FieldTree<Address>): Record<string, LayoutNode> {
 
 @Component({
   selector: 'app-composable-example',
-  imports: [FkFormComponent, JsonPipe],
+  imports: [SfrFormComponent, JsonPipe],
   template: `
     <h3>Composable Layout — Reusable layout fragments</h3>
     <p>Layouts are plain functions — composability is free via standard TypeScript.
@@ -36,7 +36,7 @@ function addressFields(addr: FieldTree<Address>): Record<string, LayoutNode> {
        by passing it directly as the group callback.</p>
 
     <section class="demo-section">
-      <fk-form [form]="orderForm" [layout]="orderLayout" />
+      <sfr-form [form]="orderForm" [layout]="orderLayout" />
       <pre>Value: {{ orderForm().value() | json }}</pre>
     </section>
 

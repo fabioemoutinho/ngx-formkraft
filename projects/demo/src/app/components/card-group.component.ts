@@ -1,17 +1,17 @@
 import { Component, input } from '@angular/core';
 import { MatCard, MatCardContent, MatCardHeader, MatCardTitle } from '@angular/material/card';
-import { FkChildrenComponent, LayoutNode } from 'ngx-formkraft';
+import { SfrChildrenComponent, LayoutNode } from 'ngx-signal-forms-renderer';
 
 @Component({
   selector: 'app-card-group',
-  imports: [MatCard, MatCardContent, MatCardHeader, MatCardTitle, FkChildrenComponent],
+  imports: [MatCard, MatCardContent, MatCardHeader, MatCardTitle, SfrChildrenComponent],
   template: `
     <mat-card>
       <mat-card-header>
         <mat-card-title>{{ title() }}</mat-card-title>
       </mat-card-header>
       <mat-card-content>
-        <fk-children [children]="children()" />
+        <sfr-children [children]="children()" />
       </mat-card-content>
     </mat-card>
   `,

@@ -1,9 +1,9 @@
 import { Component, input } from '@angular/core';
-import { FkNodeComponent, LayoutNode } from 'ngx-formkraft';
+import { SfrNodeComponent, LayoutNode } from 'ngx-signal-forms-renderer';
 
 @Component({
   selector: 'app-sortable-list',
-  imports: [FkNodeComponent],
+  imports: [SfrNodeComponent],
   template: `
     @for (node of children(); track node; let i = $index; let count = $count) {
       <div class="item-row">
@@ -11,7 +11,7 @@ import { FkNodeComponent, LayoutNode } from 'ngx-formkraft';
           <button (click)="onMove()(i, i - 1)" [disabled]="i === 0">↑</button>
           <button (click)="onMove()(i, i + 1)" [disabled]="i === count - 1">↓</button>
         </div>
-        <fk-node [node]="node" />
+        <sfr-node [node]="node" />
       </div>
     }
   `,
@@ -21,7 +21,7 @@ import { FkNodeComponent, LayoutNode } from 'ngx-formkraft';
     .sort-controls button { width: 32px; height: 32px; cursor: pointer; font-size: 16px; border: 1px solid #ccc; background: #fff; border-radius: 4px; }
     .sort-controls button:disabled { opacity: 0.4; cursor: default; }
     .sort-controls button:not(:disabled):hover { background: #f5f5f5; }
-    fk-node { flex: 1; min-width: 0; }
+    sfr-node { flex: 1; min-width: 0; }
   `,
 })
 export class SortableListComponent {

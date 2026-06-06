@@ -18,48 +18,48 @@ import {
  * https://github.com/angular/angular/pull/63101 is merged.
  *
  * Supports reactive signal bindings and dynamic host directives via
- * `fkComponentOutletBindings` and `fkComponentOutletDirectives`.
- * These are incompatible with `fkComponentOutletInputs`.
+ * `sfrComponentOutletBindings` and `sfrComponentOutletDirectives`.
+ * These are incompatible with `sfrComponentOutletInputs`.
  */
 @Directive({
-  selector: '[fkComponentOutlet]',
+  selector: '[sfrComponentOutlet]',
   standalone: true,
 })
-export class FkComponentOutletDirective implements OnChanges, DoCheck, OnDestroy {
-  @Input() fkComponentOutlet: Type<unknown> | null = null;
-  /** Note: incompatible with `fkComponentOutletBindings`. */
-  @Input() fkComponentOutletInputs?: Record<string, unknown>;
-  /** Note: incompatible with `fkComponentOutletInputs`. */
-  @Input() fkComponentOutletBindings?: Binding[];
-  @Input() fkComponentOutletDirectives?: (Type<unknown> | DirectiveWithBindings<unknown>)[];
+export class SfrComponentOutletDirective implements OnChanges, DoCheck, OnDestroy {
+  @Input() sfrComponentOutlet: Type<unknown> | null = null;
+  /** Note: incompatible with `sfrComponentOutletBindings`. */
+  @Input() sfrComponentOutletInputs?: Record<string, unknown>;
+  /** Note: incompatible with `sfrComponentOutletInputs`. */
+  @Input() sfrComponentOutletBindings?: Binding[];
+  @Input() sfrComponentOutletDirectives?: (Type<unknown> | DirectiveWithBindings<unknown>)[];
 
   private readonly _vcr = inject(ViewContainerRef);
   private _ref: ComponentRef<unknown> | undefined;
   private _inputsUsed = new Map<string, boolean>();
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (ngDevMode && this.fkComponentOutletInputs && this.fkComponentOutletBindings) {
+    if (ngDevMode && this.sfrComponentOutletInputs && this.sfrComponentOutletBindings) {
       throw new Error(
-        '[fkComponentOutlet] fkComponentOutletInputs and fkComponentOutletBindings are incompatible.',
+        '[sfrComponentOutlet] sfrComponentOutletInputs and sfrComponentOutletBindings are incompatible.',
       );
     }
     if (this._needToReCreate(changes)) {
       this._vcr.clear();
       this._inputsUsed.clear();
       this._ref = undefined;
-      if (this.fkComponentOutlet) {
-        this._ref = this._vcr.createComponent(this.fkComponentOutlet, {
-          bindings: this.fkComponentOutletBindings,
-          directives: this.fkComponentOutletDirectives,
+      if (this.sfrComponentOutlet) {
+        this._ref = this._vcr.createComponent(this.sfrComponentOutlet, {
+          bindings: this.sfrComponentOutletBindings,
+          directives: this.sfrComponentOutletDirectives,
         });
       }
     }
   }
 
   ngDoCheck(): void {
-    if (this._ref && !this.fkComponentOutletBindings) {
-      if (this.fkComponentOutletInputs) {
-        for (const inputName of Object.keys(this.fkComponentOutletInputs)) {
+    if (this._ref && !this.sfrComponentOutletBindings) {
+      if (this.sfrComponentOutletInputs) {
+        for (const inputName of Object.keys(this.sfrComponentOutletInputs)) {
           this._inputsUsed.set(inputName, true);
         }
       }
@@ -73,9 +73,9 @@ export class FkComponentOutletDirective implements OnChanges, DoCheck, OnDestroy
 
   private _needToReCreate(changes: SimpleChanges): boolean {
     return (
-      'fkComponentOutlet' in changes ||
-      'fkComponentOutletBindings' in changes ||
-      'fkComponentOutletDirectives' in changes
+      'sfrComponentOutlet' in changes ||
+      'sfrComponentOutletBindings' in changes ||
+      'sfrComponentOutletDirectives' in changes
     );
   }
 
@@ -85,7 +85,7 @@ export class FkComponentOutletDirective implements OnChanges, DoCheck, OnDestroy
         ref.setInput(inputName, undefined);
         this._inputsUsed.delete(inputName);
       } else {
-        ref.setInput(inputName, this.fkComponentOutletInputs?.[inputName]);
+        ref.setInput(inputName, this.sfrComponentOutletInputs?.[inputName]);
         this._inputsUsed.set(inputName, false);
       }
     }

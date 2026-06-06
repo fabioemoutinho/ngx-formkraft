@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { form, required } from '@angular/forms/signals';
-import { FkFormComponent, control, layout } from 'ngx-formkraft';
+import { SfrFormComponent, control, layout } from 'ngx-signal-forms-renderer';
 
 interface LoginForm {
   username: string;
@@ -10,17 +10,17 @@ interface LoginForm {
 
 @Component({
   selector: 'app-basic-example',
-  imports: [FkFormComponent, JsonPipe],
+  imports: [SfrFormComponent, JsonPipe],
   template: `
     <h3>Basic Example</h3>
     <p>
       Define the form model, wire up validators, then describe how fields render using
-      <code>layout()</code> and the type registry from <code>provideFormKraft()</code>.
+      <code>layout()</code> and the type registry from <code>provideSignalFormsRenderer()</code>.
     </p>
 
     <section class="demo-section">
       <form (ngSubmit)="onSubmit()">
-        <fk-form [form]="loginForm" [layout]="loginLayout" />
+        <sfr-form [form]="loginForm" [layout]="loginLayout" />
         <button type="submit">Submit</button>
       </form>
       <pre>Value: {{ loginForm().value() | json }}</pre>
@@ -83,7 +83,7 @@ export class BasicExampleComponent {
   }
 
   protected readonly codeProvider = `// app.config.ts
-provideFormKraft({
+provideSignalFormsRenderer({
   types: {
     text: TextInputComponent,
     select: SelectInputComponent,
@@ -103,5 +103,5 @@ loginForm = form(this.model, (f) => {
   control(f.password, { type: 'text', props: { label: 'Password', inputType: 'password' } }),
 ]);`;
 
-  protected readonly codeTemplate = `<fk-form [form]="loginForm" [layout]="loginLayout" />`;
+  protected readonly codeTemplate = `<sfr-form [form]="loginForm" [layout]="loginLayout" />`;
 }
