@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inputBinding } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { form, required } from '@angular/forms/signals';
 import { SfrFormComponent, control, layout } from 'ngx-signal-forms-renderer';
@@ -70,11 +70,15 @@ export class BasicExampleComponent {
   protected readonly loginLayout = layout(this.loginForm, (f) => [
     control(f.username, {
       type: 'text',
-      props: { label: 'Username', placeholder: 'Enter username' },
+      bindings: [inputBinding('label', () => 'Username'), inputBinding('placeholder', () => 'Enter username')],
     }),
     control(f.password, {
       type: 'text',
-      props: { label: 'Password', inputType: 'password', placeholder: 'Enter password' },
+      bindings: [
+        inputBinding('label', () => 'Password'),
+        inputBinding('inputType', () => 'password'),
+        inputBinding('placeholder', () => 'Enter password'),
+      ],
     }),
   ]);
 

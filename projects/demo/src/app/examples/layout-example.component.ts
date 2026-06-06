@@ -1,4 +1,4 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, inputBinding } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { form, required, email, hidden } from '@angular/forms/signals';
 import { SfrFormComponent, control, group, layout } from 'ngx-signal-forms-renderer';
@@ -56,13 +56,13 @@ export class LayoutExampleComponent {
 
   protected readonly userLayout = layout(this.userForm, (f) => [
     group({
-      name: control(f.name, { type: 'text', props: { label: 'Full Name' } }),
-      email: control(f.email, { type: 'text', props: { label: 'Email', inputType: 'email' } }),
-      role: control(f.role, { type: 'select', props: { label: 'Role', options: ['user', 'editor', 'admin'] } }),
-    }, { component: CardGroupComponent, props: { title: 'Personal Info' } }),
+      name: control(f.name, { type: 'text', bindings: [inputBinding('label', () => 'Full Name')] }),
+      email: control(f.email, { type: 'text', bindings: [inputBinding('label', () => 'Email'), inputBinding('inputType', () => 'email')] }),
+      role: control(f.role, { type: 'select', bindings: [inputBinding('label', () => 'Role'), inputBinding('options', () => ['user', 'editor', 'admin'])] }),
+    }, { component: CardGroupComponent, bindings: [inputBinding('title', () => 'Personal Info')] }),
     group({
-      bio: control(f.bio, { type: 'textarea', props: { label: 'Biography', placeholder: 'Tell us about yourself...' } }),
-    }, { component: CardGroupComponent, props: { title: 'Details' }, hidden: this.isNotAdmin }),
+      bio: control(f.bio, { type: 'textarea', bindings: [inputBinding('label', () => 'Biography'), inputBinding('placeholder', () => 'Tell us about yourself...')] }),
+    }, { component: CardGroupComponent, bindings: [inputBinding('title', () => 'Details')], hidden: this.isNotAdmin }),
   ]);
 
   protected readonly codeLayout = `userLayout = layout(this.userForm, (f) => [

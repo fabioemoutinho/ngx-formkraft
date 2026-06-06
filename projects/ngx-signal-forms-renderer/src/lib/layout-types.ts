@@ -1,4 +1,4 @@
-import { Signal, Type } from '@angular/core';
+import { Binding, DirectiveWithBindings, Signal, Type } from '@angular/core';
 import { FieldTree } from '@angular/forms/signals';
 
 /**
@@ -9,8 +9,18 @@ export interface LayoutNodeOptions {
   component?: Type<unknown>;
   /** String type key, resolved via the type registry. */
   type?: string;
-  /** Props passed to the resolved component. Signals are subscribed automatically. */
-  props?: Record<string, unknown>;
+  /**
+   * Reactive bindings for the resolved component (`inputBinding`/`outputBinding`/`twoWayBinding`).
+   * Merged after the renderer's own bindings (field/state/children); don't re-bind those reserved
+   * inputs. Use a reactive accessor inside a binding for values that change over time — swapping
+   * the array recreates the component.
+   */
+  bindings?: Binding[];
+  /**
+   * Host directives to attach to the resolved component. Merged after the renderer's own
+   * (the `FormField` directive auto-attached to `FormValueControl` controls).
+   */
+  directives?: (Type<unknown> | DirectiveWithBindings<unknown>)[];
   /**
    * Layout-level visibility override. When provided, it takes precedence over the
    * related field's native `hidden()`. Use it to hide layout elements that don't map

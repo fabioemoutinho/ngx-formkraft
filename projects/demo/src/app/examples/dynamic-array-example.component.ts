@@ -1,4 +1,4 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, inputBinding } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { form, FieldTree } from '@angular/forms/signals';
 import { SfrFormComponent, control, group, array, layout } from 'ngx-signal-forms-renderer';
@@ -16,8 +16,8 @@ interface BudgetForm {
 
 function budgetItemLayout(item: FieldTree<BudgetItem>) {
   return group(item, { component: CardGroupComponent }, (g) => ({
-    name: control(g.name, { type: 'text', props: { label: 'Name' } }),
-    amount: control(g.amount, { type: 'text', props: { label: 'Amount ($)' } }),
+    name: control(g.name, { type: 'text', bindings: [inputBinding('label', () => 'Name')] }),
+    amount: control(g.amount, { type: 'text', bindings: [inputBinding('label', () => 'Amount ($)')] }),
   }));
 }
 
@@ -75,7 +75,7 @@ export class DynamicArrayExampleComponent {
   );
 
   protected readonly budgetLayout = layout(this.budgetForm, (f) => [
-    array(f.items, { component: SortableListComponent, props: { onMove: (from: number, to: number) => this.swap(from, to) } }, budgetItemLayout),
+    array(f.items, { component: SortableListComponent, bindings: [inputBinding('onMove', () => (from: number, to: number) => this.swap(from, to))] }, budgetItemLayout),
   ]);
 
   protected addItem(): void {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { signal } from '@angular/core';
+import { signal, inputBinding } from '@angular/core';
 import { FieldTree } from '@angular/forms/signals';
 import { control, group, array, layout } from './layout';
 
@@ -51,10 +51,10 @@ describe('control()', () => {
 
   it('should create a ControlNode with options', () => {
     const f = mockFieldTree('hello');
-    const node = control(f, { type: 'text', props: { label: 'Name' } });
+    const node = control(f, { type: 'text', bindings: [inputBinding('label', () => 'Name')] });
     expect(node.kind).toBe('control');
     expect(node.type).toBe('text');
-    expect(node.props?.['label']).toBe('Name');
+    expect(node.bindings?.length).toBe(1);
   });
 
   it('should support component in options', () => {
@@ -77,10 +77,10 @@ describe('group()', () => {
 
   it('should create a GroupNode with explicit children and options', () => {
     class CardComp {}
-    const node = group({}, { component: CardComp as any, props: { title: 'Hello' } });
+    const node = group({}, { component: CardComp as any, bindings: [inputBinding('title', () => 'Hello')] });
     expect(node.kind).toBe('group');
     expect(node.component).toBe(CardComp);
-    expect(node.props?.['title']).toBe('Hello');
+    expect(node.bindings?.length).toBe(1);
     expect(Object.keys(node.children)).toEqual([]);
   });
 

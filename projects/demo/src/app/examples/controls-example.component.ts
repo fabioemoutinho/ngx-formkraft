@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inputBinding } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { form, required, min } from '@angular/forms/signals';
 import { SfrFormComponent, control, group, layout } from 'ngx-signal-forms-renderer';
@@ -62,13 +62,13 @@ export class ControlsExampleComponent {
 
   protected readonly feedbackLayout = layout(this.feedbackForm, (f) => [
     group({
-      name: control(f.name, { type: 'text', props: { label: 'Name' } }),
-      email: control(f.email, { type: 'text', props: { label: 'Email', inputType: 'email' } }),
-    }, { component: CardGroupComponent, props: { title: 'Your Info' } }),
+      name: control(f.name, { type: 'text', bindings: [inputBinding('label', () => 'Name')] }),
+      email: control(f.email, { type: 'text', bindings: [inputBinding('label', () => 'Email'), inputBinding('inputType', () => 'email')] }),
+    }, { component: CardGroupComponent, bindings: [inputBinding('title', () => 'Your Info')] }),
     group({
-      rating: control(f.rating, { component: RatingInputComponent, props: { label: 'How would you rate us?' } }),
-      comment: control(f.comment, { type: 'textarea', props: { label: 'Comments', placeholder: 'Optional...' } }),
-    }, { component: CardGroupComponent, props: { title: 'Feedback' } }),
+      rating: control(f.rating, { component: RatingInputComponent, bindings: [inputBinding('label', () => 'How would you rate us?')] }),
+      comment: control(f.comment, { type: 'textarea', bindings: [inputBinding('label', () => 'Comments'), inputBinding('placeholder', () => 'Optional...')] }),
+    }, { component: CardGroupComponent, bindings: [inputBinding('title', () => 'Feedback')] }),
   ]);
 
   protected readonly patternACode = `@Component({

@@ -8,7 +8,6 @@ import {
   inject,
   input,
   inputBinding,
-  isSignal,
   Signal,
   Type,
 } from '@angular/core';
@@ -63,46 +62,55 @@ export class SfrNodeComponent {
   );
 
   /**
-   * Host directives applied to the resolved component. For a control node whose component
-   * implements `FormValueControl<T>`, attaches `FormField` bound to the field so the
-   * component's value/errors/touched/disabled are wired automatically. Undefined otherwise.
+   * Host directives applied to the resolved component: the renderer's own (the `FormField`
+   * directive auto-attached to `FormValueControl` controls so value/errors/touched/disabled
+   * are wired from the field) followed by any consumer-provided `node.directives`. Undefined
+   * when there are none.
    */
-  protected readonly directives = computed((): DirectiveWithBindings<unknown>[] | undefined => {
-    const node = this.node();
-    const comp = this.resolvedComponent();
-    if (!comp || node.kind !== 'control' || !isFormValueControl(comp)) return undefined;
-    const field = node.field;
-    return [{ type: FormField, bindings: [inputBinding('formField', () => field)] }];
-  });
+  protected readonly directives = computed(
+    (): (Type<unknown> | DirectiveWithBindings<unknown>)[] | undefined => {
+      const node = this.node();
+      const comp = this.resolvedComponent();
+      const result: (Type<unknown> | DirectiveWithBindings<unknown>)[] = [];
+      if (comp && node.kind === 'control' && isFormValueControl(comp)) {
+        const field = node.field;
+        result.push({ type: FormField, bindings: [inputBinding('formField', () => field)] });
+      }
+      if (node.directives) result.push(...node.directives);
+      return result.length ? result : undefined;
+    },
+  );
 
   /**
-   * Reactive input bindings for the resolved component, by node kind:
-   * - control + FormValueControl: only custom props (value etc. come from the FormField directive)
-   * - control (plain): `field` + `state` inputs, plus props
-   * - group: `children` (the keyed record), plus props
-   * - array (renderer-owned, no itemLayout): `field`, plus props
-   * - array (library-iterated): `children` (the per-item LayoutNodes), plus props
+   * Reactive input bindings for the resolved component: the renderer's reserved bindings by
+   * node kind, followed by any consumer-provided `node.bindings` (additive — they must not
+   * re-bind the reserved inputs):
+   * - control + FormValueControl: none reserved (value etc. come from the FormField directive)
+   * - control (plain): `field` + `state`
+   * - group: `children` (the keyed record)
+   * - array (renderer-owned, no itemLayout): `field`
+   * - array (library-iterated): `children` (the per-item LayoutNodes)
    */
   protected readonly bindings = computed((): Binding[] => {
     const node = this.node();
     const comp = this.resolvedComponent();
-    const props = propsToBindings(node.props);
+    const extra = node.bindings ?? [];
 
     if (node.kind === 'control') {
-      if (comp && isFormValueControl(comp)) return props;
+      if (comp && isFormValueControl(comp)) return extra;
       const { field } = node;
-      return [inputBinding('field', () => field), inputBinding('state', () => field()), ...props];
+      return [inputBinding('field', () => field), inputBinding('state', () => field()), ...extra];
     }
     if (node.kind === 'group') {
       const { children } = node;
-      return [inputBinding('children', () => children), ...props];
+      return [inputBinding('children', () => children), ...extra];
     }
     // array
     if (node.field && !node.itemLayout) {
       const { field } = node;
-      return [inputBinding('field', () => field), ...props];
+      return [inputBinding('field', () => field), ...extra];
     }
-    return [inputBinding('children', () => this.arrayItems()), ...props];
+    return [inputBinding('children', () => this.arrayItems()), ...extra];
   });
 
   // Caches one computed per item field, keyed by the field's identity. Signal forms
@@ -157,15 +165,4 @@ export class SfrNodeComponent {
 function isFormValueControl(comp: Type<unknown>): boolean {
   const cmpDef = (comp as any).ɵcmp;
   return cmpDef?.inputs?.value !== undefined && cmpDef?.outputs?.valueChange !== undefined;
-}
-
-/**
- * Converts a props record into input bindings. Signal-valued props are bound directly so the
- * component stays subscribed to them; plain values are wrapped in a constant accessor.
- */
-function propsToBindings(props?: Record<string, unknown>): Binding[] {
-  if (!props) return [];
-  return Object.entries(props).map(([key, value]) =>
-    inputBinding(key, isSignal(value) ? (value as Signal<unknown>) : () => value),
-  );
 }

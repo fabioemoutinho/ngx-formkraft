@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inputBinding } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { form, required } from '@angular/forms/signals';
 import { FieldTree } from '@angular/forms/signals';
@@ -20,9 +20,9 @@ interface OrderForm {
 
 function addressFields(addr: FieldTree<Address>): Record<string, LayoutNode> {
   return {
-    street: control(addr.street, { type: 'text', props: { label: 'Street' } }),
-    city: control(addr.city, { type: 'text', props: { label: 'City' } }),
-    zip: control(addr.zip, { type: 'text', props: { label: 'ZIP Code' } }),
+    street: control(addr.street, { type: 'text', bindings: [inputBinding('label', () => 'Street')] }),
+    city: control(addr.city, { type: 'text', bindings: [inputBinding('label', () => 'City')] }),
+    zip: control(addr.zip, { type: 'text', bindings: [inputBinding('label', () => 'ZIP Code')] }),
   };
 }
 
@@ -69,9 +69,9 @@ export class ComposableExampleComponent {
   });
 
   protected readonly orderLayout = layout(this.orderForm, (f) => [
-    control(f.customerName, { type: 'text', props: { label: 'Customer Name' } }),
-    group(f.shippingAddress, { component: CardGroupComponent, props: { title: 'Shipping Address' } }, addressFields),
-    group(f.billingAddress, { component: CardGroupComponent, props: { title: 'Billing Address' } }, addressFields),
+    control(f.customerName, { type: 'text', bindings: [inputBinding('label', () => 'Customer Name')] }),
+    group(f.shippingAddress, { component: CardGroupComponent, bindings: [inputBinding('title', () => 'Shipping Address')] }, addressFields),
+    group(f.billingAddress, { component: CardGroupComponent, bindings: [inputBinding('title', () => 'Billing Address')] }, addressFields),
   ]);
 
   protected readonly codeFragment = `function addressFields(addr: FieldTree<Address>): Record<string, LayoutNode> {
