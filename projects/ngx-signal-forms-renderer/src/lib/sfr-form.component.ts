@@ -1,9 +1,4 @@
-import {
-  Component,
-  input,
-  ChangeDetectionStrategy,
-  Signal,
-} from '@angular/core';
+import { Component, input, Signal } from '@angular/core';
 import { FieldTree } from '@angular/forms/signals';
 import { SfrNodeComponent } from './sfr-node.component';
 import { LayoutNode } from './layout-types';
@@ -18,7 +13,6 @@ import { LayoutNode } from './layout-types';
 @Component({
   selector: 'sfr-form',
   imports: [SfrNodeComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (node of layout()(); track node) {
       <sfr-node [node]="node" />

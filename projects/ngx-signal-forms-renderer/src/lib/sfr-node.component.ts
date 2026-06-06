@@ -1,6 +1,5 @@
 import {
   Binding,
-  ChangeDetectionStrategy,
   Component,
   computed,
   DirectiveWithBindings,
@@ -32,7 +31,6 @@ import { SfrComponentOutletDirective } from './sfr-component-outlet.directive';
 @Component({
   selector: 'sfr-node',
   imports: [SfrComponentOutletDirective, forwardRef(() => SfrNodeComponent)],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (!isHidden()) {
       @if (resolvedComponent(); as comp) {
@@ -69,15 +67,13 @@ export class SfrNodeComponent {
    * implements `FormValueControl<T>`, attaches `FormField` bound to the field so the
    * component's value/errors/touched/disabled are wired automatically. Undefined otherwise.
    */
-  protected readonly directives = computed(
-    (): DirectiveWithBindings<unknown>[] | undefined => {
-      const node = this.node();
-      const comp = this.resolvedComponent();
-      if (!comp || node.kind !== 'control' || !isFormValueControl(comp)) return undefined;
-      const field = node.field;
-      return [{ type: FormField, bindings: [inputBinding('formField', () => field)] }];
-    },
-  );
+  protected readonly directives = computed((): DirectiveWithBindings<unknown>[] | undefined => {
+    const node = this.node();
+    const comp = this.resolvedComponent();
+    if (!comp || node.kind !== 'control' || !isFormValueControl(comp)) return undefined;
+    const field = node.field;
+    return [{ type: FormField, bindings: [inputBinding('formField', () => field)] }];
+  });
 
   /**
    * Reactive input bindings for the resolved component, by node kind:

@@ -1,9 +1,4 @@
-import {
-  Component,
-  ChangeDetectionStrategy,
-  computed,
-  input,
-} from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 import { SfrNodeComponent } from './sfr-node.component';
 import { LayoutNode } from './layout-types';
 
@@ -22,7 +17,6 @@ import { LayoutNode } from './layout-types';
 @Component({
   selector: 'sfr-children',
   imports: [SfrNodeComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (child of childList(); track $index) {
       <sfr-node [node]="child" />

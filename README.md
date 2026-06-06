@@ -15,7 +15,7 @@ Auto-rendering forms for Angular Signal Forms.
 npm install ngx-signal-forms-renderer
 ```
 
-> Requires Angular 21+ with experimental signal forms enabled.
+> Requires Angular 22+.
 
 ## Quick Start
 
