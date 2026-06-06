@@ -8,7 +8,7 @@
     "noImplicitReturns": true,
     "paths": {
       "ngx-signal-forms-renderer": [
-        "./dist/ngx-signal-forms-renderer"
+        "./projects/ngx-signal-forms-renderer/src/public-api.ts"
       ]
     },
     "noFallthroughCasesInSwitch": true,

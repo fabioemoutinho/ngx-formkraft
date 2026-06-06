@@ -17,6 +17,9 @@ import { LayoutNode } from './layout-types';
 @Component({
   selector: 'sfr-children',
   imports: [SfrNodeComponent],
+  // Renders no box of its own (like ng-container) — the consumer's own element is the container
+  // that lays out the rendered children.
+  styles: ':host { display: contents; }',
   template: `
     @for (child of childList(); track $index) {
       <sfr-node [node]="child" />

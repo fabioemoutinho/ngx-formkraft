@@ -16,8 +16,9 @@ import { SfrChildrenComponent, LayoutNode } from 'ngx-signal-forms-renderer';
     </mat-card>
   `,
   styles: `
-    :host { display: block; margin-bottom: 16px; }
-    mat-card-content { padding-top: 16px; }
+    mat-card-content {
+      padding-top: 16px;
+    }
   `,
 })
 export class CardGroupComponent {

@@ -1,30 +1,55 @@
 import { Component, input } from '@angular/core';
 import { SfrNodeComponent, LayoutNode } from 'ngx-signal-forms-renderer';
+import { MatButton, MatIconButton } from '@angular/material/button';
+import { MatIcon } from '@angular/material/icon';
 
+/**
+ * Renderer-owned array wrapper: renders each item's LayoutNode and adds list-level
+ * controls (reorder ↑/↓, per-item remove, and an "add" button after the list).
+ * The add/remove/move actions are supplied by the consumer as callbacks.
+ */
 @Component({
   selector: 'app-sortable-list',
-  imports: [SfrNodeComponent],
+  imports: [SfrNodeComponent, MatButton, MatIconButton, MatIcon],
   template: `
     @for (node of children(); track node; let i = $index; let count = $count) {
       <div class="item-row">
         <div class="sort-controls">
-          <button (click)="onMove()(i, i - 1)" [disabled]="i === 0">↑</button>
-          <button (click)="onMove()(i, i + 1)" [disabled]="i === count - 1">↓</button>
+          <button matIconButton (click)="onMove()(i, i - 1)" [disabled]="i === 0" aria-label="Move up">
+            <mat-icon>arrow_upward</mat-icon>
+          </button>
+          <button matIconButton (click)="onMove()(i, i + 1)" [disabled]="i === count - 1" aria-label="Move down">
+            <mat-icon>arrow_downward</mat-icon>
+          </button>
         </div>
-        <sfr-node [node]="node" />
+        <div class="item-body"><sfr-node [node]="node" /></div>
+        @if (onRemove(); as remove) {
+          <button matIconButton class="remove" (click)="remove(i)" [disabled]="count === 1" aria-label="Remove item">
+            <mat-icon>delete</mat-icon>
+          </button>
+        }
       </div>
+    }
+    @if (onAdd(); as add) {
+      <button matButton="outlined" class="add" (click)="add()">
+        <mat-icon>add</mat-icon>
+        Add item
+      </button>
     }
   `,
   styles: `
-    .item-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
-    .sort-controls { display: flex; flex-direction: column; gap: 4px; padding-top: 16px; flex-shrink: 0; }
-    .sort-controls button { width: 32px; height: 32px; cursor: pointer; font-size: 16px; border: 1px solid #ccc; background: #fff; border-radius: 4px; }
-    .sort-controls button:disabled { opacity: 0.4; cursor: default; }
-    .sort-controls button:not(:disabled):hover { background: #f5f5f5; }
-    sfr-node { flex: 1; min-width: 0; }
+    :host { display: flex; flex-direction: column; gap: 12px; }
+    .item-row { display: flex; align-items: flex-start; gap: 8px; }
+    .sort-controls { display: flex; flex-direction: column; gap: 2px; padding-top: 8px; flex-shrink: 0; }
+    .item-body { flex: 1; min-width: 0; }
+    .remove { align-self: center; flex-shrink: 0; color: #d32f2f; }
+    .add { align-self: flex-start; }
   `,
+
 })
 export class SortableListComponent {
   readonly children = input.required<LayoutNode[]>();
   readonly onMove = input.required<(from: number, to: number) => void>();
+  readonly onAdd = input<() => void>();
+  readonly onRemove = input<(index: number) => void>();
 }

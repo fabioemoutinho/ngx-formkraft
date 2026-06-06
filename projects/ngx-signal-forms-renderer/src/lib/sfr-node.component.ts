@@ -30,6 +30,9 @@ import { SfrComponentOutletDirective } from './sfr-component-outlet.directive';
 @Component({
   selector: 'sfr-node',
   imports: [SfrComponentOutletDirective, forwardRef(() => SfrNodeComponent)],
+  // The host renders no box (like ng-container), so a node never adds a wrapper element to a
+  // parent's flex/grid layout. A hidden node renders nothing and thus takes no space at all.
+  styles: ':host { display: contents; }',
   template: `
     @if (!isHidden()) {
       @if (resolvedComponent(); as comp) {
@@ -88,6 +91,7 @@ export class SfrNodeComponent {
    * - control + FormValueControl: none reserved (value etc. come from the FormField directive)
    * - control (plain): `field` + `state`
    * - group: `children` (the keyed record)
+   * - array (static ordered nodes): `children` (the node's LayoutNode[])
    * - array (renderer-owned, no itemLayout): `field`
    * - array (library-iterated): `children` (the per-item LayoutNodes)
    */
@@ -99,18 +103,28 @@ export class SfrNodeComponent {
     if (node.kind === 'control') {
       if (comp && isFormValueControl(comp)) return extra;
       const { field } = node;
-      return [inputBinding('field', () => field), inputBinding('state', () => field()), ...extra];
+      // Bind `field`/`state` only if the control actually declares them, so a control can opt
+      // out of either (or both) without a "binding to unknown input" error.
+      const reserved: Binding[] = [];
+      if (!comp || hasInput(comp, 'field')) reserved.push(inputBinding('field', () => field));
+      if (!comp || hasInput(comp, 'state')) reserved.push(inputBinding('state', () => field()));
+      return [...reserved, ...extra];
     }
     if (node.kind === 'group') {
       const { children } = node;
       return [inputBinding('children', () => children), ...extra];
     }
-    // array
-    if (node.field && !node.itemLayout) {
+    // array — library-iterated (field + itemLayout)
+    if (node.field && node.itemLayout) {
+      return [inputBinding('children', () => this.arrayItems()), ...extra];
+    }
+    // array — renderer-owned field (no itemLayout)
+    if (node.field) {
       const { field } = node;
       return [inputBinding('field', () => field), ...extra];
     }
-    return [inputBinding('children', () => this.arrayItems()), ...extra];
+    // array — static ordered nodes
+    return [inputBinding('children', () => node.children ?? []), ...extra];
   });
 
   // Caches one computed per item field, keyed by the field's identity. Signal forms
@@ -139,7 +153,7 @@ export class SfrNodeComponent {
   protected readonly children = computed((): LayoutNode[] => {
     const node = this.node();
     if (node.kind === 'group') return Object.values(node.children);
-    if (node.kind === 'array') return this.arrayItems();
+    if (node.kind === 'array') return node.itemLayout ? this.arrayItems() : (node.children ?? []);
     return [];
   });
 
@@ -165,4 +179,9 @@ export class SfrNodeComponent {
 function isFormValueControl(comp: Type<unknown>): boolean {
   const cmpDef = (comp as any).ɵcmp;
   return cmpDef?.inputs?.value !== undefined && cmpDef?.outputs?.valueChange !== undefined;
+}
+
+/** Whether a component declares a public input with the given name (reads its compiled def). */
+function hasInput(comp: Type<unknown>, name: string): boolean {
+  return (comp as any).ɵcmp?.inputs?.[name] !== undefined;
 }

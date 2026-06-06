@@ -6,6 +6,7 @@ import { routes } from './app.routes';
 import { TextInputComponent } from './components/text-input.component';
 import { SelectInputComponent } from './components/select-input.component';
 import { TextareaInputComponent } from './components/textarea-input.component';
+import { CheckboxInputComponent } from './components/checkbox-input.component';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -17,6 +18,7 @@ export const appConfig: ApplicationConfig = {
         text: TextInputComponent,
         select: SelectInputComponent,
         textarea: TextareaInputComponent,
+        checkbox: CheckboxInputComponent,
       },
     }),
   ],
