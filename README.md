@@ -1,11 +1,15 @@
 # ngx-signal-forms-renderer
 
-Auto-rendering forms for Angular Signal Forms.
+Render Angular Signal Forms from a declarative layout.
 
-**ngx-signal-forms-renderer** is a UI-agnostic library that renders forms from a layout description, powered by Angular Signal Forms (`@angular/forms/signals`). It separates form concerns into two layers:
+**ngx-signal-forms-renderer** is a UI-agnostic library that renders a form from a layout
+description, powered by Angular Signal Forms (`@angular/forms/signals`). It separates form
+concerns into two layers:
 
-1. **Signal Forms** — data model + validation (your domain, untouched)
-2. **Layout** — visual structure + rendering instructions (controls, groups, arrays)
+1. **Signal Forms** — data model + validation + metadata (your domain, untouched)
+2. **Layout** — structure + which component renders each field (controls, groups, arrays)
+
+You bring your own control components; the renderer wires them to the form.
 
 [Live Demo](https://fabioemoutinho.github.io/ngx-signal-forms-renderer)
 
@@ -24,16 +28,14 @@ npm install ngx-signal-forms-renderer
 ```typescript
 // app.config.ts
 import { provideSignalFormsRenderer } from 'ngx-signal-forms-renderer';
-import { TextInputComponent } from './components/text-input.component';
-import { SelectComponent } from './components/select.component';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideSignalFormsRenderer({
       types: {
         text: TextInputComponent,
-        select: SelectComponent,
-        card: CardGroupComponent,
+        select: SelectInputComponent,
+        textarea: TextareaInputComponent,
       },
     }),
   ],
@@ -62,15 +64,28 @@ const userForm = form(model, (f) => {
 
 ### 3. Describe the layout
 
+Inputs to your components are passed as **`bindings`** using `inputBinding` from `@angular/core`
+(reactive — they also support `outputBinding` and `twoWayBinding`).
+
 ```typescript
+import { inputBinding } from '@angular/core';
 import { layout, control, group } from 'ngx-signal-forms-renderer';
 
 const userLayout = layout(userForm, (f) => [
-  group('personal', { type: 'card', props: { title: 'Personal Info' } }, {
-    name: control(f.name, { type: 'text', props: { label: 'Full Name' } }),
-    email: control(f.email, { type: 'text', props: { label: 'Email', inputType: 'email' } }),
-    role: control(f.role, { type: 'select', props: { label: 'Role', options: ['user', 'editor', 'admin'] } }),
-  }),
+  group(
+    {
+      name: control(f.name, { type: 'text', bindings: [inputBinding('label', () => 'Full name')] }),
+      email: control(f.email, {
+        type: 'text',
+        bindings: [inputBinding('label', () => 'Email'), inputBinding('inputType', () => 'email')],
+      }),
+      role: control(f.role, {
+        type: 'select',
+        bindings: [inputBinding('label', () => 'Role'), inputBinding('options', () => ['user', 'editor', 'admin'])],
+      }),
+    },
+    { component: CardGroupComponent, bindings: [inputBinding('title', () => 'Personal info')] },
+  ),
 ]);
 ```
 
@@ -82,162 +97,179 @@ const userLayout = layout(userForm, (f) => [
 
 ## Core Concepts
 
-### Two-Layer Architecture
+### Two-layer architecture
 
 ```
-Signal Form (data + validation)          Layout (structure + rendering)
-form(model, schema)                      layout(form, f => [...])
+Signal Form (data + validation)          Layout (structure + components)
+form(model, schema)                       layout(form, f => [...])
          \                                        /
           \                                      /
            +------  <sfr-form>  ----------------+
-                    walks layout tree
-                    resolves components
-                    renders via NgComponentOutlet
+                    walks the layout tree
+                    resolves each node's component
+                    renders it dynamically with reactive bindings
 ```
 
-### Layout Node Kinds
+The layout never touches your data rules; signal forms never knows about rendering. A control
+component you write gets the real `FieldTree`, so it keeps full access to signal forms features
+(validation, `hidden()`, `disabled()`, metadata, …) — the renderer stays out of the way.
 
-- **`control`** — a form control. The component receives `field` and `state` and uses `[formField]` on its inner form element.
-- **`group`** — a keyed collection of nodes rendered inside an optional wrapper component. Children are a `Record<string, LayoutNode>`.
-- **`array`** — an ordered sequence of nodes rendered inside an optional wrapper component. Children are `LayoutNode[]`.
+### Layout node kinds
 
-### Component Resolution (two-tier)
+- **`control`** — a form control. Its component receives the `field` (and optionally `state`), or
+  implements `FormValueControl<T>`.
+- **`group`** — a keyed collection of nodes (`Record<string, LayoutNode>`), optionally wrapped in a
+  component. Can be data-driven from a sub-object field.
+- **`array`** — a list of nodes: static, renderer-owned, or library-iterated from an array field.
 
-Every node (control, group, or array) resolves its component with the same priority:
+### Component resolution (two-tier)
 
-1. **Direct component reference** (inline in layout) — highest priority
-2. **String `type`** resolved via the registry — fallback
+Every node resolves its component the same way:
+
+1. **Direct component reference** (`component`) — highest priority
+2. **String `type`** resolved via the registry from `provideSignalFormsRenderer({ types })`
 
 ```typescript
-// Direct component — takes precedence
-control(f.bio, { component: RichTextEditor, props: { label: 'Bio' } });
-
-// String type — resolved from provideSignalFormsRenderer({ types: { text: TextInput } })
-control(f.name, { type: 'text', props: { label: 'Name' } });
+control(f.bio, { component: RichTextEditor });        // direct
+control(f.name, { type: 'text' });                    // from the registry
 ```
 
-This applies to groups and arrays too:
+### Bindings & directives
+
+Layout nodes carry `bindings` and `directives` instead of a plain props object — the same vocabulary
+the renderer uses internally. `inputBinding(name, value)` takes a **value accessor** (`() => value`):
+a signal already is one, so pass it directly; wrap plain/static values in `() => value`.
 
 ```typescript
-group('personal', { component: CardComponent }, { name: control(f.name) })
-group('personal', { type: 'card' }, { name: control(f.name) })  // resolved from registry
+import { inputBinding, outputBinding } from '@angular/core';
+
+control(f.email, {
+  type: 'text',
+  bindings: [
+    inputBinding('label', () => 'Email'),       // static input value — wrap in an accessor
+    inputBinding('hint', hintSignal),           // a signal is already () => value — pass it directly
+    outputBinding('focused', onFocus),          // output listener — pass the handler directly
+  ],
+  directives: [TooltipDirective],               // host directives, conditionally if you like
+});
 ```
+
+Consumer `bindings`/`directives` are merged *after* the renderer's own (the `field`/`state` inputs,
+or the `FormField` directive for `FormValueControl` components) — don't re-bind those.
 
 ### Visibility
 
-- **Controls**: driven by signal forms' `hidden()` function in the schema. The renderer reads `field().hidden()` automatically.
-- **Groups/Arrays**: use `hidden?: Signal<boolean>` on the layout node, since they don't have a corresponding signal form field.
+- A node that maps to a **field** (any control, or a data-driven group/array) defers to that field's
+  native signal-forms `hidden()`.
+- A **layout-level `hidden`** signal (on any node) takes precedence — use it for elements that don't
+  map to a field, or to override.
 
 ```typescript
-// Control visibility — in signal forms schema
+// In the signal forms schema (semantic — also excluded from validation)
 const userForm = form(model, (f) => {
-  hidden(f.bio, ({ valueOf }) => valueOf(f.role) !== 'admin');
+  hidden(f.bio, { when: ({ valueOf }) => valueOf(f.role) !== 'admin' });
 });
 
-// Group visibility — in layout
-group('admin-section', { hidden: computed(() => userForm.role().value() !== 'admin') }, {})
+// Layout-level override
+group({ /* ... */ }, { hidden: computed(() => userForm.role().value() !== 'admin') });
 ```
 
 ## API Reference
 
-### Types
+You build layouts with the functions below — you don't construct node objects by hand. Every builder
+accepts the same **options** object:
 
-#### `LayoutNodeOptions`
+| Option       | Type                                                | Purpose                                              |
+| ------------ | --------------------------------------------------- | ---------------------------------------------------- |
+| `component`  | `Type<unknown>`                                     | Render with this component (takes precedence).        |
+| `type`       | `string`                                            | Component registered via `provideSignalFormsRenderer`. |
+| `bindings`   | `Binding[]`                                          | Inputs/outputs (`inputBinding`/`outputBinding`/`twoWayBinding`). |
+| `directives` | `(Type<unknown> \| DirectiveWithBindings<unknown>)[]` | Host directives to attach.                            |
+| `hidden`     | `Signal<boolean>`                                   | Layout-level visibility override.                     |
 
-Shared rendering options for any layout node.
+The builders return `LayoutNode`s — the only type you'll reference directly, as the `children` input
+on custom group/array wrapper components.
 
-```typescript
-interface LayoutNodeOptions {
-  component?: Type<unknown>; // direct component reference
-  type?: string;             // string type key for registry
-  props?: Record<string, unknown>; // inputs passed to component
-}
-```
+### Builder functions
 
-#### `LayoutNode`
-
-Union type: `ControlNode | GroupNode | ArrayNode`
-
-```typescript
-interface ControlNode<T> extends LayoutNodeOptions {
-  kind: 'control';
-  field: FieldTree<T>;
-}
-
-interface GroupNode extends LayoutNodeOptions {
-  kind: 'group';
-  name: string;
-  hidden?: Signal<boolean>;
-  children: Record<string, LayoutNode>;
-}
-
-interface ArrayNode extends LayoutNodeOptions {
-  kind: 'array';
-  name: string;
-  hidden?: Signal<boolean>;
-  children: LayoutNode[];
-}
-```
-
-### Builder Functions
-
-#### `control(fieldRef, options?)`
-
-Creates a control node.
+#### `control(field, options?)`
 
 ```typescript
 control(f.name);
-control(f.name, { type: 'text', props: { label: 'Name' } });
+control(f.name, { type: 'text', bindings: [inputBinding('label', () => 'Name')] });
 control(f.name, { component: CustomInput });
 ```
 
-#### `group(name, children)` / `group(name, options, children)`
+#### `group(...)`
 
-Creates a group node (keyed collection) with optional wrapper component.
+A keyed collection of nodes, optionally wrapped in a component. Two forms:
 
-```typescript
-group('personal', { name: control(f.name), email: control(f.email) });
-group('personal', { type: 'card', props: { title: 'Personal' } }, { name: control(f.name) });
-group('personal', { component: CardComponent }, { name: control(f.name) });
-```
-
-#### `array(name, children)` / `array(name, options, children)`
-
-Creates an array node (ordered sequence) with optional wrapper component.
+**Explicit children** — a fixed set of keyed nodes. Use to group unrelated top-level fields under one
+wrapper (e.g. a card).
 
 ```typescript
-array('steps', [control(f.step1), control(f.step2)]);
-array('steps', { component: StepperComponent }, [control(f.step1), control(f.step2)]);
-array('steps', { type: 'stepper' }, [control(f.step1)]);
+group({ name: control(f.name), email: control(f.email) });
+group({ name: control(f.name) }, { component: CardComponent });
 ```
 
-#### `layout(formRef, fn)`
+**Data-driven** — bound to a sub-object field; the callback receives that object's sub-fields. Use for
+a nested object (an address, etc.). The group also defers to the field's native `hidden()`.
 
-Creates a reactive layout function. Mirrors `form(model, fn)`.
+```typescript
+group(f.address, (g) => ({ street: control(g.street), city: control(g.city) }));
+group(f.address, { component: AddressCard }, (g) => ({ street: control(g.street) }));
+```
+
+#### `array(...)`
+
+A list of nodes. Four forms, differing in **who owns iteration**:
+
+**Static** — a fixed, ordered set of nodes (not driven by an array field). Use for things like wizard
+steps that just need ordering.
+
+```typescript
+array([control(f.step1), control(f.step2)]);
+```
+
+**Library-iterated** — the renderer iterates the array field and builds one node per item from your
+`itemLayout`. Use for a plain repeating list. Item identity is tracked, so editing/adding/removing/
+reordering doesn't recreate (or lose focus in) the other rows.
+
+```typescript
+array(f.items, (item) => group(item, (g) => ({ name: control(g.name) })));
+```
+
+**Library-iterated + wrapper** — same per-item iteration, but the per-item nodes are passed to a
+wrapper component as its `children`. Use when the list needs UI around each item (reorder, remove,
+"add"): the library builds each item, your component arranges them and adds the controls.
+
+```typescript
+array(f.items, { component: SortableList }, (item) => group(item, (g) => ({ name: control(g.name) })));
+```
+
+**Renderer-owned** — the component receives the array `field` itself and does its own iteration and
+mutation. Use when you want full control over how the array renders and changes.
+
+```typescript
+array(f.items, { component: ItemsListComponent });
+```
+
+#### `layout(form, fn)`
+
+Returns a `Signal<LayoutNode[]>`. Reading signals inside `fn` makes the layout reactive.
 
 ```typescript
 const myLayout = layout(userForm, (f) => [
-  group('basics', { type: 'card' }, {
-    name: control(f.name, { type: 'text', props: { label: 'Name' } }),
-    email: control(f.email),
-  }),
+  group({ name: control(f.name, { type: 'text' }) }),
+  array(f.items, (item) => group(item, (g) => ({ name: control(g.name) }))),
 ]);
 ```
 
 ### Provider
 
-#### `provideSignalFormsRenderer(config)`
-
-Registers the type registry at the environment level.
-
 ```typescript
 provideSignalFormsRenderer({
-  types: {
-    text: TextInputComponent,
-    select: SelectInputComponent,
-    card: CardGroupComponent,
-    stepper: StepperComponent,
-  },
+  types: { text: TextInputComponent, select: SelectInputComponent, card: CardGroupComponent },
 });
 ```
 
@@ -245,163 +277,121 @@ provideSignalFormsRenderer({
 
 #### `<sfr-form>`
 
-Top-level renderer. Takes a form and a layout function.
+| Input    | Type                    | Description                                |
+| -------- | ----------------------- | ------------------------------------------ |
+| `form`   | `FieldTree<T>`          | Required. The signal form.                 |
+| `layout` | `Signal<LayoutNode[]>`  | Required. The signal from `layout()`.      |
 
 ```html
 <sfr-form [form]="userForm" [layout]="userLayout" />
 ```
 
-| Input    | Type                 | Description                             |
-| -------- | -------------------- | --------------------------------------- |
-| `form`   | `FieldTree<T>`       | Required. The signal form.              |
-| `layout` | `() => LayoutNode[]` | Required. Layout function from `layout()`. |
-
 #### `<sfr-children>`
 
-Helper for custom group and array components to render their children.
+Helper for custom group/array components to render their children. Renders no element of its own
+(`display: contents`), so your component's element is the layout container.
 
 ```typescript
 @Component({
+  imports: [SfrChildrenComponent],
   template: `
     <mat-card>
-      <mat-card-header>{{ title() }}</mat-card-header>
-      <mat-card-content>
-        <sfr-children [children]="children()" />
-      </mat-card-content>
+      <mat-card-header><mat-card-title>{{ title() }}</mat-card-title></mat-card-header>
+      <mat-card-content><sfr-children [children]="children()" /></mat-card-content>
     </mat-card>
   `,
-  imports: [SfrChildrenComponent],
 })
 export class CardGroupComponent {
-  name = input.required<string>();
-  title = input('');
-  children = input.required<Record<string, LayoutNode>>();
+  readonly title = input('');
+  readonly children = input.required<Record<string, LayoutNode>>();
 }
 ```
 
-## Component Contracts
+## Component contracts
 
-### Control Components
+### Control components
 
-The library passes `field` (the `FieldTree`) and `state` (the `FieldState`) as inputs. Control components use `[formField]` on their inner form element — the `FormField` directive from `@angular/forms/signals` handles value sync, touched, dirty, disabled, required, error state automatically.
+The renderer binds `field` (the `FieldTree`) and `state` (the `FieldState`) **only if the component
+declares those inputs** — so a control opts into exactly what it needs.
 
-**Pattern A: Wrapping existing UI components (Material, PrimeNG, etc.)**
+**Pattern A — wrap an existing UI control (Material, PrimeNG, …)** via `[formField]`:
 
 ```typescript
 @Component({
-  imports: [MatFormField, MatInput, MatLabel, MatError, FormField],
+  imports: [MatFormField, MatLabel, MatInput, MatError, FormField],
   template: `
     <mat-form-field>
       <mat-label>{{ label() }}</mat-label>
-      <input matInput [formField]="field()" [placeholder]="placeholder()" />
+      <input matInput [formField]="field()" />
       <mat-error>{{ state().errors()[0]?.message }}</mat-error>
     </mat-form-field>
   `,
 })
 export class TextInputComponent {
-  field = input.required<FieldTree<string>>(); // always provided by the library
-  state = input.required<FieldState<string>>(); // always provided by the library
-  label = input(''); // custom prop from props
-  placeholder = input(''); // custom prop from props
+  readonly field = input.required<FieldTree<string>>();
+  readonly state = input.required<FieldState<string>>(); // declare only if you read it
+  readonly label = input('');                            // from bindings
 }
 ```
 
-**Pattern B: Fully custom controls (implement `FormValueControl<T>`)**
+A control that only binds via `[formField]` and shows no errors can declare just `field`.
+
+**Pattern B — fully custom control** implementing `FormValueControl<T>`. The renderer attaches the
+`FormField` directive (binding `value`/`touched`/etc.), so it receives **no** `field`/`state`:
 
 ```typescript
-export class ColorPickerComponent implements FormValueControl<string> {
-  field = input.required<FieldTree<string>>();
-  value = model(''); // required — two-way bound by [formField]
+export class RatingComponent implements FormValueControl<number> {
+  readonly value = model(0);   // required — two-way bound by FormField
+  readonly label = input('');  // from bindings
 }
 ```
 
-### Group Components
+### Group / array components
 
-Receive `name`, `children` (as `Record<string, LayoutNode>`), and any custom props:
-
-```typescript
-@Component({ ... })
-export class CardGroupComponent {
-  name = input.required<string>();
-  children = input.required<Record<string, LayoutNode>>();
-  title = input(''); // custom prop from props
-}
-```
-
-Use `<sfr-children [children]="children()" />` to render them, or iterate `children()` by key for custom placement.
-
-### Array Components
-
-Receive `name`, `children` (as `LayoutNode[]`), and any custom props:
+Receive `children` (and any custom `bindings`). Render them with `<sfr-children>`, or iterate for
+custom placement.
 
 ```typescript
-@Component({ ... })
 export class StepperComponent {
-  name = input.required<string>();
-  children = input.required<LayoutNode[]>();
+  readonly children = input.required<LayoutNode[]>();
 }
 ```
 
-Use `<sfr-children [children]="children()" />` to render them in order, or iterate manually for full control.
+## Layout composability
 
-## Layout Composability
-
-Layouts are plain functions returning `LayoutNode[]` — composability is free via standard TypeScript patterns.
-
-### Reusable Fragments
+Layouts are plain functions returning `LayoutNode[]`, so composition is just TypeScript.
 
 ```typescript
 function addressFields(addr: FieldTree<Address>): Record<string, LayoutNode> {
   return {
-    street: control(addr.street, { type: 'text', props: { label: 'Street' } }),
-    city: control(addr.city, { type: 'text', props: { label: 'City' } }),
+    street: control(addr.street, { type: 'text', bindings: [inputBinding('label', () => 'Street')] }),
+    city: control(addr.city, { type: 'text', bindings: [inputBinding('label', () => 'City')] }),
   };
 }
 
 const orderLayout = layout(orderForm, (f) => [
-  group('shipping', { type: 'card', props: { title: 'Shipping' } }, addressFields(f.shippingAddress)),
-  group('billing', { type: 'card', props: { title: 'Billing' } }, addressFields(f.billingAddress)),
+  group(f.shippingAddress, { component: CardGroupComponent }, addressFields),
+  group(f.billingAddress, { component: CardGroupComponent }, addressFields),
 ]);
 ```
 
-### Higher-Order Builders
-
-```typescript
-function cardGroup(name: string, title: string, children: Record<string, LayoutNode>) {
-  return group(name, { type: 'card', props: { title } }, children);
-}
-```
-
-### Extending Layouts
-
-```typescript
-function baseProfileLayout(f: FieldTree<UserProfile>): LayoutNode[] {
-  return [group('basics', { name: control(f.name), email: control(f.email) })];
-}
-
-const hrLayout = layout(userForm, (f) => [
-  ...baseProfileLayout(f),
-  group('hr', { type: 'card' }, { department: control(f.department), startDate: control(f.startDate) }),
-]);
-```
+Because the layout is just data + functions, you can also build it from your own schema/config — the
+[demo](https://fabioemoutinho.github.io/ngx-signal-forms-renderer) renders a whole checkout form from a
+plain-data schema mapped onto these builders.
 
 ## Development
 
 ```bash
-# Install dependencies
 npm install
 
-# Build library
+# Build the library
 npx ng build ngx-signal-forms-renderer
 
-# Run demo app
-npx ng serve demo
+# Run the demo app
+npx ng serve
 
 # Run tests
 npx ng test ngx-signal-forms-renderer
-
-# Build demo for deployment
-npx ng build demo --base-href /ngx-signal-forms-renderer/
 ```
 
 ## License

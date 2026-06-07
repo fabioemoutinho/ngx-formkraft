@@ -116,7 +116,7 @@ export class SfrNodeComponent {
     }
     // array — library-iterated (field + itemLayout)
     if (node.field && node.itemLayout) {
-      return [inputBinding('children', () => this.arrayItems()), ...extra];
+      return [inputBinding('children', this.arrayItems), ...extra];
     }
     // array — renderer-owned field (no itemLayout)
     if (node.field) {
