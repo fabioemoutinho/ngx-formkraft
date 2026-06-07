@@ -6,10 +6,18 @@ of truth — when it changes on `main`, CI publishes to npm and creates a GitHub
 
 ## One-time setup
 
-1. Create an npm access token with publish rights — an **Automation** token, or a **Granular**
-   token with "Read and write" on packages.
-2. Add it as a GitHub repository secret named **`NPM_TOKEN`**
-   (Settings → Secrets and variables → Actions → New repository secret).
+Publishing uses npm **Trusted Publishing (OIDC)** — no tokens are stored in CI.
+
+1. On npmjs.com, open the package → **Settings → Trusted Publisher** → add a GitHub Actions publisher:
+   - **Organization or user:** `fabioemoutinho`
+   - **Repository:** `ngx-signal-forms-renderer`
+   - **Workflow filename:** `publish.yml`
+   - **Allowed action:** `npm publish`
+2. Nothing else — the workflow already has `id-token: write` and upgrades npm to ≥ 11.5.1, so no
+   `NODE_AUTH_TOKEN`/secret is needed.
+
+> The package was first published manually to bootstrap it; the Trusted Publisher above now drives
+> every subsequent release through CI with no token.
 
 ## Cutting a release
 
@@ -55,9 +63,8 @@ npm version 0.0.1                     # (or: npm version patch/minor/major)
   cd dist/ngx-signal-forms-renderer && npm publish --dry-run
   ```
   It prints `name: ngx-signal-forms-renderer` (no scope) and the target registry.
-- **Provenance** requires a public repo and `id-token: write` (declared in the workflow).
-- **Trusted publishing (optional).** After the first publish you can configure an npm
-  [Trusted Publisher](https://docs.npmjs.com/trusted-publishers) (OIDC) for this repo and remove the
-  `NPM_TOKEN` secret entirely.
+- **Auth & provenance.** Releases use [Trusted Publishing](https://docs.npmjs.com/trusted-publishers)
+  (OIDC) — no `NPM_TOKEN` secret. The workflow's `id-token: write` lets npm mint a short-lived token
+  and attach **provenance** automatically (no `--provenance` flag, public repo required).
 - **Pre-1.0.** While on `0.x`, treat any release as potentially breaking (semver allows it).
 - The demo site deploy (GitHub Pages, `.github/workflows/deploy.yml`) is separate from publishing.

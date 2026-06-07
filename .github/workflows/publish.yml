@@ -12,7 +12,7 @@ on:
 
 permissions:
   contents: write # create the git tag + GitHub Release
-  id-token: write # npm provenance
+  id-token: write # npm trusted publishing (OIDC) + provenance
 
 jobs:
   publish:
@@ -42,6 +42,10 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: npm
 
+      - name: Ensure npm supports trusted publishing
+        if: steps.published.outputs.exists == 'false'
+        run: npm install -g npm@latest # trusted publishing needs npm >= 11.5.1
+
       - name: Install
         if: steps.published.outputs.exists == 'false'
         run: npm ci
@@ -64,12 +68,12 @@ jobs:
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # Trusted publishing (OIDC): no token needed, provenance is automatic.
+      # Requires a Trusted Publisher configured for this package on npmjs.com.
       - name: Publish to npm
         if: steps.published.outputs.exists == 'false'
-        run: npm publish --provenance --access public --tag "${{ steps.tag.outputs.dist }}"
+        run: npm publish --access public --tag "${{ steps.tag.outputs.dist }}"
         working-directory: dist/ngx-signal-forms-renderer
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Tag + GitHub Release
         if: steps.published.outputs.exists == 'false'
