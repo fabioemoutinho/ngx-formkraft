@@ -1,0 +1,84 @@
+name: Publish to npm
+
+# Publishes when the library's version changes on main (the version in
+# projects/ngx-signal-forms-renderer/package.json is the source of truth),
+# or when run manually. Re-runs are safe: it skips a version already on npm.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'projects/ngx-signal-forms-renderer/package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write # create the git tag + GitHub Release
+  id-token: write # npm provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read package version
+        id: pkg
+        run: echo "version=$(node -p "require('./projects/ngx-signal-forms-renderer/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Check if version is already published
+        id: published
+        run: |
+          if npm view "ngx-signal-forms-renderer@${{ steps.pkg.outputs.version }}" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "ngx-signal-forms-renderer@${{ steps.pkg.outputs.version }} is already on npm — nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node
+        if: steps.published.outputs.exists == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - name: Install
+        if: steps.published.outputs.exists == 'false'
+        run: npm ci
+
+      - name: Build library
+        if: steps.published.outputs.exists == 'false'
+        run: npx ng build ngx-signal-forms-renderer
+
+      - name: Resolve npm dist-tag
+        id: tag
+        if: steps.published.outputs.exists == 'false'
+        run: |
+          version="${{ steps.pkg.outputs.version }}"
+          if [[ "$version" == *-* ]]; then
+            pre="${version#*-}"; pre="${pre%%.*}"   # e.g. "beta" from 0.0.1-beta.0
+            echo "dist=$pre" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "dist=latest" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to npm
+        if: steps.published.outputs.exists == 'false'
+        run: npm publish --provenance --access public --tag "${{ steps.tag.outputs.dist }}"
+        working-directory: dist/ngx-signal-forms-renderer
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Tag + GitHub Release
+        if: steps.published.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=()
+          [ "${{ steps.tag.outputs.prerelease }}" = "true" ] && flags+=(--prerelease)
+          gh release create "v${{ steps.pkg.outputs.version }}" \
+            --target "${{ github.sha }}" \
+            --title "v${{ steps.pkg.outputs.version }}" \
+            --generate-notes "${flags[@]}"
