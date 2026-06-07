@@ -83,6 +83,7 @@
               }
             ],
             "styles": [
+              "node_modules/highlight.js/styles/github.css",
               "projects/demo/src/styles.scss"
             ]
           },

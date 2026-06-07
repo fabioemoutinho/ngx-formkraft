@@ -1,6 +1,6 @@
 import { Component, computed, signal, viewChild } from '@angular/core';
-import { JsonPipe } from '@angular/common';
 import { CheckoutFormComponent } from './checkout-form.component';
+import { CodeBlockComponent } from '../components/code-block.component';
 import { checkoutSchema } from './checkout.schema';
 
 const REPO = 'https://github.com/fabioemoutinho/ngx-signal-forms-renderer';
@@ -48,12 +48,18 @@ const BUILD_FILES = [
  */
 @Component({
   selector: 'app-checkout',
-  imports: [CheckoutFormComponent, JsonPipe],
+  imports: [CheckoutFormComponent, CodeBlockComponent],
   template: `
     <header class="hero">
       <div>
         <h1>ngx-signal-forms-renderer</h1>
         <p>Forms from data — a plain schema becomes a live Angular form, rendered, reactive, and validated by Signal Forms.</p>
+        <div class="install">
+          <code>{{ installCmd }}</code>
+          <button type="button" (click)="copyInstall()" [class.copied]="installCopied()">
+            {{ installCopied() ? 'Copied' : 'Copy' }}
+          </button>
+        </div>
       </div>
       <a class="gh" [href]="repo" target="_blank" rel="noopener" aria-label="View on GitHub" title="View on GitHub">
         <svg viewBox="0 0 16 16" width="26" height="26" aria-hidden="true">
@@ -68,17 +74,24 @@ const BUILD_FILES = [
     <div class="panes">
       <section class="pane side">
         <h2>Schema <span>data</span></h2>
-        <pre class="code">{{ schemaJson }}</pre>
+        <app-code-block [code]="schemaJson" lang="json" />
       </section>
 
       <section class="pane">
         <h2>Form <span>rendered</span></h2>
+        <div class="hints">
+          <span class="hint-label">Try it</span>
+          <span class="chip">Switch plan → Pro</span>
+          <span class="chip">Set a qty above stock</span>
+          <span class="chip">Toggle “billing same as shipping”</span>
+          <span class="chip">Reorder items</span>
+        </div>
         <app-checkout-form />
       </section>
 
       <section class="pane side">
         <h2>Value <span>output</span></h2>
-        <pre class="code">{{ form()?.value() | json }}</pre>
+        <app-code-block [code]="valueJson()" lang="json" />
       </section>
     </div>
 
@@ -94,7 +107,7 @@ const BUILD_FILES = [
         }
       </div>
       <p class="blurb">{{ activeMeta().blurb }}</p>
-      <pre class="code built-pre">{{ source()[activeFile()] ?? 'Loading…' }}</pre>
+      <app-code-block class="built-pre" [code]="source()[activeFile()] ?? 'Loading…'" lang="typescript" />
       <a class="src" [href]="gh + '/' + activeFile()" target="_blank" rel="noopener">View on GitHub ↗</a>
     </section>
   `,
@@ -103,6 +116,13 @@ const BUILD_FILES = [
     .hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
     .hero h1 { margin: 0 0 6px; font-size: 30px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: -0.5px; }
     .hero p { margin: 0; color: #555; max-width: 60ch; }
+    .install { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 5px 5px 5px 12px; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+    .install code { color: #1a1a1a; }
+    .install button { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid #d4d4d8; border-radius: 6px; background: #fff; cursor: pointer; color: #3f3f46; }
+    .install button.copied { color: #2e7d32; border-color: #a5d6a7; }
+    .hints { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 14px; }
+    .hint-label { font-size: 12px; font-weight: 600; color: #6b7280; }
+    .chip { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: #eef2ff; color: #3730a3; border: 1px solid #e0e7ff; }
     .gh { color: #1a1a1a; flex-shrink: 0; }
     .gh:hover { color: #1976d2; }
     .gh svg { display: block; }
@@ -112,8 +132,7 @@ const BUILD_FILES = [
     .pane h2 span { text-transform: none; letter-spacing: 0; color: #a1a1aa; font-weight: 400; margin-left: 6px; }
     /* Schema + Value panes stay in view while the form scrolls; bounded to the viewport. */
     .pane.side { position: sticky; top: 16px; max-height: calc(100vh - 32px); display: flex; flex-direction: column; }
-    .code { background: #f4f4f5; border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.5; overflow: auto; }
-    .pane.side .code { flex: 1 1 auto; min-height: 0; }
+    .pane.side app-code-block { flex: 1 1 auto; min-height: 0; }
     @media (max-width: 1000px) {
       .panes { grid-template-columns: 1fr; }
       .pane.side { position: static; max-height: none; }
@@ -134,6 +153,8 @@ const BUILD_FILES = [
 export class CheckoutComponent {
   protected readonly repo = REPO;
   protected readonly gh = GH;
+  protected readonly installCmd = 'npm install ngx-signal-forms-renderer';
+  protected readonly installCopied = signal(false);
   protected readonly buildFiles = BUILD_FILES;
   protected readonly schemaJson = JSON.stringify(checkoutSchema, null, 2);
 
@@ -143,9 +164,17 @@ export class CheckoutComponent {
 
   /** The embedded form — its value feeds the Value pane. */
   protected readonly form = viewChild(CheckoutFormComponent);
+  protected readonly valueJson = computed(() => JSON.stringify(this.form()?.value() ?? null, null, 2));
 
   /** Lazily-fetched source files (bundled as assets), keyed by their asset path. */
   protected readonly source = signal<Record<string, string>>({});
+
+  protected copyInstall(): void {
+    navigator.clipboard.writeText(this.installCmd).then(() => {
+      this.installCopied.set(true);
+      setTimeout(() => this.installCopied.set(false), 1500);
+    });
+  }
 
   constructor() {
     for (const { file } of BUILD_FILES) {
