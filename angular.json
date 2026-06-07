@@ -75,6 +75,11 @@
               {
                 "glob": "**/*",
                 "input": "projects/demo/public"
+              },
+              {
+                "glob": "*.ts",
+                "input": "projects/demo/src/app/checkout",
+                "output": "source/checkout"
               }
             ],
             "styles": [

@@ -19,10 +19,10 @@ import { CheckoutModel } from './checkout.model';
 export const STOCK = createMetadataKey<number>();
 
 /**
- * Pure signal-forms schema: validation, metadata and conditional visibility.
- * Note this layer knows nothing about layout — the renderer never gets in its way.
+ * The Signal Forms schema — the model's validation, metadata and conditional visibility,
+ * passed to `form(model, schema)`. This layer knows nothing about layout or rendering.
  */
-export const checkoutRules = schema<CheckoutModel>((f) => {
+export const checkoutFormSchema = schema<CheckoutModel>((f) => {
   required(f.customerName);
   required(f.email);
   email(f.email);

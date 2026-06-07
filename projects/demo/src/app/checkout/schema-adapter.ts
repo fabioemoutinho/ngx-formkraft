@@ -8,101 +8,7 @@ import { QuantityInputComponent } from '../components/quantity-input.component';
 import { RatingInputComponent } from '../components/rating-input.component';
 import { StackComponent } from '../components/stack.component';
 import { CheckoutModel, LineItem } from './checkout.model';
-
-// ── Plain-data schema ────────────────────────────────────────────────────────
-// This is just data — it could come from a server. The adapter below turns it into
-// a renderer layout. Nothing here imports Angular.
-
-export interface FieldConfig {
-  kind: 'field';
-  name: string;
-  type: 'text' | 'select' | 'textarea' | 'checkbox' | 'rating';
-  label?: string;
-  placeholder?: string;
-  inputType?: string;
-  options?: string[];
-}
-
-export interface SectionConfig {
-  kind: 'section';
-  title: string;
-  fields: FieldConfig[];
-  /**
-   * If this section maps to a nested object in the model, its key (e.g. 'shipping'). The section
-   * is then bound to that sub-object field — its `fields` resolve under it, and it defers to the
-   * field's native hidden(). Omit for sections that group top-level fields.
-   */
-  field?: string;
-  /** Layout-level visibility predicate, e.g. 'plan=Pro' or '!billingSameAsShipping'. */
-  when?: string;
-}
-
-export interface ArrayConfig {
-  kind: 'array';
-  name: string;
-  reorderable?: boolean;
-}
-
-export type NodeConfig = SectionConfig | FieldConfig | ArrayConfig;
-export type FormSchema = NodeConfig[];
-
-export const checkoutSchema: FormSchema = [
-  {
-    kind: 'section',
-    title: 'Customer',
-    fields: [
-      { kind: 'field', name: 'customerName', type: 'text', label: 'Full name' },
-      { kind: 'field', name: 'email', type: 'text', label: 'Email', inputType: 'email' },
-    ],
-  },
-  {
-    kind: 'section',
-    title: 'Shipping address',
-    field: 'shipping',
-    fields: [
-      { kind: 'field', name: 'street', type: 'text', label: 'Street' },
-      { kind: 'field', name: 'city', type: 'text', label: 'City' },
-      { kind: 'field', name: 'zip', type: 'text', label: 'ZIP' },
-    ],
-  },
-  {
-    kind: 'field',
-    name: 'billingSameAsShipping',
-    type: 'checkbox',
-    label: 'Billing address same as shipping',
-  },
-  {
-    kind: 'section',
-    title: 'Billing address',
-    field: 'billing',
-    fields: [
-      { kind: 'field', name: 'street', type: 'text', label: 'Street' },
-      { kind: 'field', name: 'city', type: 'text', label: 'City' },
-      { kind: 'field', name: 'zip', type: 'text', label: 'ZIP' },
-    ],
-  },
-  { kind: 'array', name: 'items', reorderable: true },
-  {
-    kind: 'section',
-    title: 'Plan',
-    fields: [
-      { kind: 'field', name: 'plan', type: 'select', label: 'Plan', options: ['Free', 'Pro'] },
-    ],
-  },
-  {
-    kind: 'section',
-    title: 'Business details',
-    when: 'plan=Pro',
-    fields: [{ kind: 'field', name: 'company', type: 'text', label: 'Company name' }],
-  },
-  {
-    kind: 'section',
-    title: 'Feedback',
-    fields: [{ kind: 'field', name: 'rating', type: 'rating', label: 'How was your experience?' }],
-  },
-];
-
-// ── Adapter: schema → renderer layout ────────────────────────────────────────
+import { checkoutSchema, NodeConfig, SectionConfig, FieldConfig } from './checkout.schema';
 
 export interface AdapterCallbacks {
   moveItem: (from: number, to: number) => void;
@@ -116,14 +22,11 @@ export function buildCheckoutLayout(
   cb: AdapterCallbacks,
 ): LayoutNode[] {
   const sections = checkoutSchema.map((node) => buildNode(node, f, cb));
+  // Wrap the sections in a StackComponent so the top-level spacing is owned by a layout component.
   return [array(sections, { component: StackComponent })];
 }
 
-function buildNode(
-  node: NodeConfig,
-  f: FieldTree<CheckoutModel>,
-  cb: AdapterCallbacks,
-): LayoutNode {
+function buildNode(node: NodeConfig, f: FieldTree<CheckoutModel>, cb: AdapterCallbacks): LayoutNode {
   switch (node.kind) {
     case 'field':
       return fieldControl(node, child(f, node.name));

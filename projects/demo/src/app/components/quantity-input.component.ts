@@ -2,7 +2,7 @@ import { Component, computed, input } from '@angular/core';
 import { FieldTree, FieldState, FormField } from '@angular/forms/signals';
 import { MatFormField, MatLabel, MatHint } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
-import { STOCK } from '../checkout/checkout.rules';
+import { STOCK } from '../checkout/checkout.form-schema';
 
 /**
  * Plain control (receives `field` + `state`) for a line-item quantity.

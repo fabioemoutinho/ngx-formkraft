@@ -1,79 +1,113 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, viewChild } from '@angular/core';
 import { JsonPipe } from '@angular/common';
-import { form } from '@angular/forms/signals';
-import { MatButton } from '@angular/material/button';
-import { SfrFormComponent, layout } from 'ngx-signal-forms-renderer';
-import { CheckoutModel, emptyOrder, sampleOrder } from './checkout.model';
-import { checkoutRules } from './checkout.rules';
-import { checkoutSchema, buildCheckoutLayout } from './form-config';
-import { productOf } from './catalog';
+import { CheckoutFormComponent } from './checkout-form.component';
+import { checkoutSchema } from './checkout.schema';
 
-const GH = 'https://github.com/fabioemoutinho/ngx-signal-forms-renderer/blob/main/projects/demo/src/app/checkout';
+const REPO = 'https://github.com/fabioemoutinho/ngx-signal-forms-renderer';
+const GH = `${REPO}/blob/main/projects/demo/src/app`;
 
+/** Source files for the "How it's built" walkthrough — copied into the build (angular.json assets). */
+const BUILD_FILES = [
+  {
+    step: 1,
+    label: 'external schema',
+    optional: true,
+    file: 'checkout/checkout.schema.ts',
+    blurb:
+      'Plain data describing the form — the kind of config you could store or load from a server. Optional: one way to drive the layout. The same data could also feed a second adapter that generates the Signal Forms schema; here it only generates the layout.',
+  },
+  {
+    step: 2,
+    label: 'form schema',
+    optional: false,
+    file: 'checkout/checkout.form-schema.ts',
+    blurb:
+      'The Signal Forms schema — validation, metadata (catalog stock) and conditional visibility, passed to form(model, schema). Written directly; the renderer never touches it.',
+  },
+  {
+    step: 3,
+    label: 'layout',
+    optional: false,
+    file: 'checkout/schema-adapter.ts',
+    blurb:
+      'The renderer layout — which component renders each field. Required: it is what you hand to <sfr-form>. Built with control/group/array (it takes the form as input). Here an adapter generates it from the external schema, but you could write it by hand just the same — the README has simpler, hand-written examples.',
+  },
+  {
+    step: 4,
+    label: 'usage',
+    optional: false,
+    file: 'checkout/checkout-form.component.ts',
+    blurb:
+      'Ties it together: create the signal form, build the layout (here via the adapter), and render with <sfr-form>.',
+  },
+];
+
+/**
+ * Demo page (shell): the live Schema / Form / Value tri-pane, plus a "How it's built" walkthrough
+ * of the source. The actual form lives in CheckoutFormComponent; this only presents it.
+ */
 @Component({
   selector: 'app-checkout',
-  imports: [SfrFormComponent, JsonPipe, MatButton],
+  imports: [CheckoutFormComponent, JsonPipe],
   template: `
     <header class="hero">
       <div>
-        <h1>Forms from data</h1>
-        <p>A plain schema becomes a live Angular form — rendered, reactive, and validated by Signal Forms.</p>
+        <h1>ngx-signal-forms-renderer</h1>
+        <p>Forms from data — a plain schema becomes a live Angular form, rendered, reactive, and validated by Signal Forms.</p>
       </div>
-      <a class="gh" href="https://github.com/fabioemoutinho/ngx-signal-forms-renderer" target="_blank" rel="noopener">GitHub ↗</a>
+      <a class="gh" [href]="repo" target="_blank" rel="noopener" aria-label="View on GitHub" title="View on GitHub">
+        <svg viewBox="0 0 16 16" width="26" height="26" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"
+          />
+        </svg>
+      </a>
     </header>
 
     <div class="panes">
-      <!-- Schema (data) -->
       <section class="pane side">
         <h2>Schema <span>data</span></h2>
         <pre class="code">{{ schemaJson }}</pre>
-        <details>
-          <summary>How it's wired</summary>
-          <ul class="links">
-            <li><a [href]="gh + '/form-config.ts'" target="_blank" rel="noopener">schema → layout adapter</a></li>
-            <li><a [href]="gh + '/checkout.rules.ts'" target="_blank" rel="noopener">validation + stock metadata</a></li>
-            <li><a [href]="gh + '/catalog.ts'" target="_blank" rel="noopener">product catalog</a></li>
-          </ul>
-        </details>
       </section>
 
-      <!-- Rendered form -->
       <section class="pane">
         <h2>Form <span>rendered</span></h2>
-        <div class="toolbar">
-          <button matButton="outlined" (click)="loadSample()" [disabled]="loading()">
-            {{ loading() ? 'Loading…' : 'Load sample order' }}
-          </button>
-          <button matButton (click)="reset()">Reset</button>
-        </div>
-
-        <sfr-form [form]="checkout" [layout]="checkoutLayout" />
-
-        <div class="summary">
-          <span class="total">Total: \${{ total() }}</span>
-          <span class="status" [class.invalid]="checkout().invalid()">
-            {{ checkout().invalid() ? 'Has errors' : 'Valid' }}
-          </span>
-        </div>
+        <app-checkout-form />
       </section>
 
-      <!-- Live value -->
       <section class="pane side">
         <h2>Value <span>output</span></h2>
-        <pre class="code">{{ checkout().value() | json }}</pre>
+        <pre class="code">{{ form()?.value() | json }}</pre>
       </section>
     </div>
 
     <div class="flow"><span>data</span> → <span>form</span> → <span>value</span></div>
+
+    <section class="built">
+      <h2>How it's built</h2>
+      <div class="filetabs">
+        @for (f of buildFiles; track f.file) {
+          <button [class.active]="activeFile() === f.file" (click)="activeFile.set(f.file)">
+            {{ f.step }}. {{ f.label }}@if (f.optional) {<span class="opt"> · optional</span>}
+          </button>
+        }
+      </div>
+      <p class="blurb">{{ activeMeta().blurb }}</p>
+      <pre class="code built-pre">{{ source()[activeFile()] ?? 'Loading…' }}</pre>
+      <a class="src" [href]="gh + '/' + activeFile()" target="_blank" rel="noopener">View on GitHub ↗</a>
+    </section>
   `,
   styles: `
     :host { display: block; max-width: 1200px; margin: 0 auto; padding: 24px; color: #1a1a1a; }
     .hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
-    .hero h1 { margin: 0 0 4px; font-size: 28px; }
+    .hero h1 { margin: 0 0 6px; font-size: 30px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: -0.5px; }
     .hero p { margin: 0; color: #555; max-width: 60ch; }
-    .gh { white-space: nowrap; text-decoration: none; color: #1976d2; font-weight: 500; }
+    .gh { color: #1a1a1a; flex-shrink: 0; }
+    .gh:hover { color: #1976d2; }
+    .gh svg { display: block; }
     .panes { display: grid; grid-template-columns: 0.9fr 1.2fr 0.9fr; gap: 16px; align-items: start; }
-    .pane { border: 1px solid #e4e4e7; border-radius: 10px; padding: 16px; background: #fff; }
+    .pane { min-width: 0; border: 1px solid #e4e4e7; border-radius: 10px; padding: 16px; background: #fff; }
     .pane h2 { margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; color: #3f3f46; }
     .pane h2 span { text-transform: none; letter-spacing: 0; color: #a1a1aa; font-weight: 400; margin-left: 6px; }
     /* Schema + Value panes stay in view while the form scrolls; bounded to the viewport. */
@@ -84,69 +118,41 @@ const GH = 'https://github.com/fabioemoutinho/ngx-signal-forms-renderer/blob/mai
       .panes { grid-template-columns: 1fr; }
       .pane.side { position: static; max-height: none; }
     }
-    .toolbar { display: flex; gap: 8px; margin: 8px 0 16px; flex-wrap: wrap; }
-    .summary { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 12px; border-top: 1px solid #eee; }
-    .total { font-weight: 600; font-size: 16px; }
-    .status { font-size: 13px; color: #2e7d32; }
-    .status.invalid { color: #d32f2f; }
-    details { margin-top: 12px; font-size: 13px; }
-    summary { cursor: pointer; color: #3f3f46; }
-    .links { margin: 8px 0 0; padding-left: 18px; }
-    .links a { color: #1976d2; text-decoration: none; }
-    .flow { text-align: center; margin-top: 20px; color: #a1a1aa; font-size: 13px; letter-spacing: 0.1em; }
+    .flow { text-align: center; margin: 20px 0; color: #a1a1aa; font-size: 13px; letter-spacing: 0.1em; }
     .flow span { color: #3f3f46; font-weight: 500; }
+    .built { margin-top: 28px; border-top: 1px solid #eee; padding-top: 20px; }
+    .built > h2 { margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; color: #3f3f46; }
+    .filetabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+    .filetabs button { font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #e4e4e7; background: #fff; border-radius: 6px; cursor: pointer; color: #3f3f46; }
+    .filetabs button.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .opt { color: #a1a1aa; font-weight: 400; }
+    .blurb { margin: 0 0 10px; color: #555; font-size: 13px; max-width: 80ch; }
+    .built-pre { max-height: 70vh; }
+    .src { display: inline-block; margin-top: 10px; font-size: 13px; color: #1976d2; text-decoration: none; }
   `,
 })
 export class CheckoutComponent {
+  protected readonly repo = REPO;
   protected readonly gh = GH;
+  protected readonly buildFiles = BUILD_FILES;
   protected readonly schemaJson = JSON.stringify(checkoutSchema, null, 2);
 
-  protected readonly loading = signal(false);
-  private readonly model = signal<CheckoutModel>(emptyOrder());
+  /** Selected file in the "How it's built" walkthrough. */
+  protected readonly activeFile = signal(BUILD_FILES[0].file);
+  protected readonly activeMeta = computed(() => BUILD_FILES.find((f) => f.file === this.activeFile())!);
 
-  protected readonly checkout = form(this.model, checkoutRules);
+  /** The embedded form — its value feeds the Value pane. */
+  protected readonly form = viewChild(CheckoutFormComponent);
 
-  protected readonly checkoutLayout = layout(this.checkout, (f) =>
-    buildCheckoutLayout(f, {
-      moveItem: (from, to) => this.moveItem(from, to),
-      addItem: () => this.addItem(),
-      removeItem: (index) => this.removeItem(index),
-    }),
-  );
+  /** Lazily-fetched source files (bundled as assets), keyed by their asset path. */
+  protected readonly source = signal<Record<string, string>>({});
 
-  protected readonly total = computed(() =>
-    this.checkout()
-      .value()
-      .items.reduce((sum, it) => sum + (productOf(it.sku)?.price ?? 0) * (it.quantity || 0), 0)
-      .toFixed(2),
-  );
-
-  protected addItem(): void {
-    this.model.update((m) => ({ ...m, items: [...m.items, { sku: 'SKU-1', quantity: 1 }] }));
-  }
-
-  protected removeItem(index: number): void {
-    this.model.update((m) => ({ ...m, items: m.items.filter((_, i) => i !== index) }));
-  }
-
-  protected moveItem(from: number, to: number): void {
-    this.model.update((m) => {
-      const items = [...m.items];
-      [items[from], items[to]] = [items[to], items[from]];
-      return { ...m, items };
-    });
-  }
-
-  protected reset(): void {
-    this.model.set(emptyOrder());
-  }
-
-  /** Simulated async load of an existing order — proves create vs edit + hydration. */
-  protected loadSample(): void {
-    this.loading.set(true);
-    setTimeout(() => {
-      this.model.set(sampleOrder());
-      this.loading.set(false);
-    }, 600);
+  constructor() {
+    for (const { file } of BUILD_FILES) {
+      fetch(new URL('source/' + file, document.baseURI))
+        .then((r) => r.text())
+        .then((text) => this.source.update((s) => ({ ...s, [file]: text })))
+        .catch(() => this.source.update((s) => ({ ...s, [file]: '// failed to load source' })));
+    }
   }
 }
